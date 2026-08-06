@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - IN-PLACE EDITING & STREAMLINED CREATION
+// KNOWLEDGE BASE APPLICATION LOGIC - FULL INTERACTIVE EDITION (V2)
 // ==========================================================================
 
 function initApp() {
@@ -60,6 +60,7 @@ function initApp() {
     const readerTitle = document.getElementById('readerTitle');
     const readerContent = document.getElementById('readerContent');
     
+    const editTopicBtn = document.getElementById('editTopicBtn');
     const deleteArticleBtn = document.getElementById('deleteArticleBtn');
     const downloadMdBtn = document.getElementById('downloadMdBtn');
 
@@ -86,6 +87,9 @@ function initApp() {
     const topicForm = document.getElementById('topicForm');
     const topicCategorySelect = document.getElementById('topicCategorySelect');
     const newTopicTitleInput = document.getElementById('newTopicTitleInput');
+    const topicModalHeaderTitle = document.getElementById('topicModalHeaderTitle');
+    const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
+    const editTopicId = document.getElementById('editTopicId');
 
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
@@ -389,7 +393,25 @@ function initApp() {
         return messagesList;
     }
 
-    // Reader View & Interactive Message Rendering with IN-PLACE INLINE EDITING (Screenshot 1 solution)
+    // Helper: Separate pure text from Markdown Image URLs
+    function extractTextAndImages(bodyMarkdown) {
+        let text = bodyMarkdown || "";
+        let images = [];
+
+        // Match markdown image regex: ![alt](url)
+        const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+        let match;
+        while ((match = imgRegex.exec(bodyMarkdown)) !== null) {
+            images.push(match[2]);
+        }
+
+        // Clean image markdown out of text
+        text = text.replace(imgRegex, '').trim();
+
+        return { text, images };
+    }
+
+    // Reader View & Interactive Message Rendering with INLINE EDITOR + IMAGE MANAGEMENT
     function openReaderView(id) {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -452,7 +474,7 @@ function initApp() {
                 <div class="msg-body markdown-body">${renderedBody}</div>
             `;
 
-            // IN-PLACE INLINE EDITING (No browser popup!)
+            // IN-PLACE INLINE EDITING (Screenshot 1 & 2 solution: Clean Text + Image Previews)
             const editBtn = msgDiv.querySelector('.edit-msg-btn');
             const msgBodyDiv = msgDiv.querySelector('.msg-body');
 
@@ -461,22 +483,90 @@ function initApp() {
                     if (msgDiv.classList.contains('editing')) return;
                     msgDiv.classList.add('editing');
 
-                    const originalBody = msg.bodyText;
+                    const { text: cleanText, images: existingImages } = extractTextAndImages(msg.bodyText);
+                    let editImagesList = [...existingImages];
+
                     msgBodyDiv.innerHTML = `
                         <div class="msg-inline-editor">
-                            <textarea class="msg-inline-textarea" rows="4">${escapeHtml(originalBody)}</textarea>
-                            <div class="msg-inline-actions">
-                                <button type="button" class="btn btn-secondary cancel-inline-btn">Hủy</button>
-                                <button type="button" class="btn btn-primary save-inline-btn">Lưu chỉnh sửa</button>
+                            <textarea class="msg-inline-textarea" rows="4" placeholder="Nhập nội dung luận giải... (Có thể dán ảnh Ctrl+V hoặc bấm đính kèm ảnh phía dưới)">${escapeHtml(cleanText)}</textarea>
+                            
+                            <div class="msg-form-actions-row" style="margin-top:8px;">
+                                <div class="file-upload-btn-wrapper">
+                                    <label for="editMsgImgInput_${idx}" class="btn btn-outline-sm">📷 Đính kèm ảnh</label>
+                                    <input type="file" id="editMsgImgInput_${idx}" accept="image/*" style="display: none;">
+                                </div>
+                                <div class="msg-inline-actions">
+                                    <button type="button" class="btn btn-secondary cancel-inline-btn">Hủy</button>
+                                    <button type="button" class="btn btn-primary save-inline-btn">Lưu chỉnh sửa</button>
+                                </div>
                             </div>
+
+                            <div class="image-preview-container edit-img-container_${idx}" style="display:${editImagesList.length > 0 ? 'flex' : 'none'};"></div>
                         </div>
                     `;
 
                     const textarea = msgBodyDiv.querySelector('.msg-inline-textarea');
+                    const fileInput = msgBodyDiv.querySelector(`#editMsgImgInput_${idx}`);
+                    const imgContainer = msgBodyDiv.querySelector(`.edit-img-container_${idx}`);
                     const saveInlineBtn = msgBodyDiv.querySelector('.save-inline-btn');
                     const cancelInlineBtn = msgBodyDiv.querySelector('.cancel-inline-btn');
 
+                    function renderEditImages() {
+                        if (!imgContainer) return;
+                        imgContainer.innerHTML = '';
+                        if (editImagesList.length === 0) {
+                            imgContainer.style.display = 'none';
+                            return;
+                        }
+                        imgContainer.style.display = 'flex';
+                        editImagesList.forEach((url, i) => {
+                            const thumb = document.createElement('div');
+                            thumb.className = 'img-thumb-wrapper';
+                            thumb.innerHTML = `
+                                <img src="${url}" alt="Ảnh đính kèm">
+                                <button type="button" class="img-remove-btn">&times;</button>
+                            `;
+                            thumb.querySelector('.img-remove-btn').onclick = () => {
+                                editImagesList.splice(i, 1);
+                                renderEditImages();
+                            };
+                            imgContainer.appendChild(thumb);
+                        });
+                    }
+
+                    renderEditImages();
                     if (textarea) textarea.focus();
+
+                    // Paste images while editing
+                    if (textarea) {
+                        textarea.onpaste = (e) => {
+                            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                            for (let item of items) {
+                                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                                    const blob = item.getAsFile();
+                                    compressImageFile(blob, 1200, 0.75, (compressedDataUrl) => {
+                                        editImagesList.push(compressedDataUrl);
+                                        renderEditImages();
+                                    });
+                                }
+                            }
+                        };
+                    }
+
+                    // File input images while editing
+                    if (fileInput) {
+                        fileInput.onchange = (e) => {
+                            const files = e.target.files;
+                            if (files && files.length > 0) {
+                                for (let file of files) {
+                                    compressImageFile(file, 1200, 0.75, (compressedDataUrl) => {
+                                        editImagesList.push(compressedDataUrl);
+                                        renderEditImages();
+                                    });
+                                }
+                            }
+                        };
+                    }
 
                     if (cancelInlineBtn) {
                         cancelInlineBtn.onclick = () => {
@@ -487,9 +577,15 @@ function initApp() {
 
                     if (saveInlineBtn) {
                         saveInlineBtn.onclick = () => {
-                            const newText = textarea.value.trim();
-                            if (newText) {
-                                parsedMsgs[idx].bodyText = newText;
+                            let updatedText = textarea.value.trim();
+                            if (editImagesList.length > 0) {
+                                editImagesList.forEach((imgUrl, i) => {
+                                    updatedText += `\n\n![Ảnh đính kèm ${i+1}](${imgUrl})`;
+                                });
+                            }
+
+                            if (updatedText) {
+                                parsedMsgs[idx].bodyText = updatedText;
                                 saveUpdatedMessagesToArticle(article, parsedMsgs);
                             }
                         };
@@ -676,7 +772,7 @@ function initApp() {
         };
     }
 
-    // Streamlined Category Modal & Topic Modal Workflow (Screenshot 3)
+    // Streamlined Category Modal & Topic Modal Workflow
     if (addCategoryBtnSidebar) {
         addCategoryBtnSidebar.onclick = () => {
             if (categoryModal) categoryModal.classList.add('active');
@@ -704,33 +800,55 @@ function initApp() {
         };
     }
 
-    // "➕ Thêm Chủ Đề Mới" Button Workflow
-    function openTopicModal() {
+    // "➕ Thêm Chủ Đề Mới" Button Workflow & "✏️ Sửa Chủ Đề" (Screenshot 3 fix)
+    function openTopicModal(articleToEdit = null) {
         renderNavigation();
-        let targetCat = categories[0] || "";
-        if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
-            targetCat = activeCategory;
+        
+        if (articleToEdit) {
+            if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề (Kênh)";
+            if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Lưu Chỉnh Sửa";
+            if (editTopicId) editTopicId.value = articleToEdit.id;
+            if (topicCategorySelect) topicCategorySelect.value = articleToEdit.category;
+            if (newTopicTitleInput) newTopicTitleInput.value = articleToEdit.title;
+        } else {
+            if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề (Kênh) Mới";
+            if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề & Đăng Bài";
+            if (editTopicId) editTopicId.value = "";
+            
+            let targetCat = categories[0] || "";
+            if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
+                targetCat = activeCategory;
+            }
+            if (topicCategorySelect) topicCategorySelect.value = targetCat;
+            if (newTopicTitleInput) newTopicTitleInput.value = "";
         }
 
-        if (topicCategorySelect) topicCategorySelect.value = targetCat;
-        if (newTopicTitleInput) {
-            newTopicTitleInput.value = "";
-            newTopicTitleInput.focus();
-        }
+        if (newTopicTitleInput) newTopicTitleInput.focus();
         if (topicModal) topicModal.classList.add('active');
     }
 
-    if (addChannelBtnCategory) addChannelBtnCategory.onclick = openTopicModal;
-    if (navAddTopicBtn) navAddTopicBtn.onclick = openTopicModal;
+    if (addChannelBtnCategory) addChannelBtnCategory.onclick = () => openTopicModal(null);
+    if (navAddTopicBtn) navAddTopicBtn.onclick = () => openTopicModal(null);
+
+    if (editTopicBtn) {
+        editTopicBtn.onclick = () => {
+            if (!currentArticleId) return;
+            const article = allArticles.find(a => a.id === currentArticleId);
+            if (article) {
+                openTopicModal(article);
+            }
+        };
+    }
 
     if (closeTopicModalBtn) closeTopicModalBtn.onclick = () => topicModal.classList.remove('active');
     if (cancelTopicModalBtn) cancelTopicModalBtn.onclick = () => topicModal.classList.remove('active');
     if (topicModalBackdrop) topicModalBackdrop.onclick = () => topicModal.classList.remove('active');
 
-    // Topic Form Submission -> Creates topic & AUTOMATICALLY NAVIGATES INSIDE!
+    // Topic Form Submission -> Creates or edits topic
     if (topicForm) {
         topicForm.onsubmit = (e) => {
             e.preventDefault();
+            const id = editTopicId ? editTopicId.value : "";
             const cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
             const title = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
 
@@ -739,39 +857,70 @@ function initApp() {
                 return;
             }
 
-            let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
             let targetId = null;
 
-            if (existingArticle) {
-                targetId = existingArticle.id;
+            if (id) {
+                // Edit existing Topic
+                let index = customArticles.findIndex(a => a.id === id);
+                let targetArt = allArticles.find(a => a.id === id);
+
+                if (targetArt) {
+                    // Update header lines in content
+                    let contentLines = (targetArt.content || '').split('\n');
+                    if (contentLines.length > 0 && contentLines[0].startsWith('# ')) {
+                        contentLines[0] = `# ${cat} / #${title}`;
+                    }
+                    const updatedContent = contentLines.join('\n');
+
+                    const updatedArt = {
+                        ...targetArt,
+                        id: id,
+                        category: cat,
+                        title: title,
+                        channel: title,
+                        content: updatedContent
+                    };
+
+                    if (index >= 0) {
+                        customArticles[index] = updatedArt;
+                    } else {
+                        customArticles.push(updatedArt);
+                    }
+                    targetId = id;
+                }
             } else {
-                const newId = `custom_${Date.now()}`;
-                const formattedContent = `# ${cat} / #${title}\n\n`;
+                // Check if existing
+                let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
+                if (existingArticle) {
+                    targetId = existingArticle.id;
+                } else {
+                    const newId = `custom_${Date.now()}`;
+                    const formattedContent = `# ${cat} / #${title}\n\n`;
 
-                const newArt = {
-                    id: newId,
-                    category: cat,
-                    channel: title,
-                    title: title,
-                    isThread: false,
-                    msgCount: 0,
-                    preview: "Bấm để thêm nội dung luận giải...",
-                    content: formattedContent
-                };
-                customArticles.push(newArt);
-                targetId = newId;
-
-                try {
-                    localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-                } catch (err) {}
+                    const newArt = {
+                        id: newId,
+                        category: cat,
+                        channel: title,
+                        title: title,
+                        isThread: false,
+                        msgCount: 0,
+                        preview: "Bấm để thêm nội dung luận giải...",
+                        content: formattedContent
+                    };
+                    customArticles.push(newArt);
+                    targetId = newId;
+                }
             }
+
+            try {
+                localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+            } catch (err) {}
 
             allArticles = getCombinedArticles();
             refreshCategories();
             selectCategory(cat);
             if (topicModal) topicModal.classList.remove('active');
 
-            // AUTOMATICALLY OPEN READER VIEW TO TYPE CONTENT!
             if (targetId) {
                 openReaderView(targetId);
             }

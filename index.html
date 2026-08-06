@@ -158,6 +158,7 @@
                     </div>
 
                     <div class="reader-actions">
+                        <button id="editTopicBtn" class="btn btn-outline-sm">✏️ Sửa Chủ Đề</button>
                         <button id="deleteArticleBtn" class="btn btn-danger-sm">🗑️ Xóa Chủ Đề Này</button>
                         <button id="downloadMdBtn" class="btn btn-outline-sm">📥 Tải .md</button>
                     </div>
@@ -174,12 +175,12 @@
 
                     <div class="reader-sep"></div>
 
-                    <!-- Rendered Messages & In-place Inline Edit -->
+                    <!-- Rendered Messages & Interactive In-place Inline Edit -->
                     <div class="reader-messages-list" id="readerContent">
                         <!-- Messages list -->
                     </div>
 
-                    <!-- Inline Quick Add Message Box (Screenshot 3) -->
+                    <!-- Inline Quick Add Message Box -->
                     <div class="inline-add-msg-box" id="inlineAddMsgBox">
                         <div class="msg-box-header">
                             <h4>💬 Thêm Nội Dung / Luận Giải Mới</h4>
@@ -254,15 +255,17 @@
         </div>
     </div>
 
-    <!-- Modal 2: Add New Topic / Channel (Screenshot 3 Workflow) -->
+    <!-- Modal 2: Add New Topic / Channel -->
     <div class="modal" id="topicModal">
         <div class="modal-backdrop" id="topicModalBackdrop"></div>
         <div class="modal-card modal-sm">
             <div class="modal-header">
-                <h3>➕ Thêm Chủ Đề (Kênh) Mới</h3>
+                <h3 id="topicModalHeaderTitle">➕ Thêm Chủ Đề (Kênh) Mới</h3>
                 <button class="icon-btn" id="closeTopicModalBtn">&times;</button>
             </div>
             <form id="topicForm" class="modal-body">
+                <input type="hidden" id="editTopicId">
+
                 <div class="form-field">
                     <label for="topicCategorySelect">Chuyên Mục:</label>
                     <select id="topicCategorySelect" class="form-select">
@@ -270,12 +273,12 @@
                     </select>
                 </div>
                 <div class="form-field">
-                    <label for="newTopicTitleInput">Tên Chủ Đề / Kênh Mới:</label>
+                    <label for="newTopicTitleInput">Tên Chủ Đề / Kênh:</label>
                     <input type="text" id="newTopicTitleInput" placeholder="Vd: Luận gia đạo, Tuổi Dần Mộc..." required>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelTopicModalBtn">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-primary">Tạo Chủ Đề & Đăng Bài</button>
+                    <button type="submit" class="btn btn-primary" id="saveTopicModalSubmitBtn">Tạo Chủ Đề & Đăng Bài</button>
                 </div>
             </form>
         </div>
