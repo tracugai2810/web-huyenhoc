@@ -183,7 +183,6 @@ function initApp() {
                         cloudLogs = Object.values(data);
                     }
                     if (cloudLogs.length > 0) {
-                        cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
                         if (cloudLogs.length > 20) cloudLogs = cloudLogs.slice(0, 20);
                         localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                         updateActivityBadge();
@@ -554,9 +553,11 @@ function initApp() {
                 if (Array.isArray(logData)) cloudLogs = logData;
                 else if (logData && typeof logData === 'object') cloudLogs = Object.values(logData);
                 if (cloudLogs.length > 0) {
-                    cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
                     if (cloudLogs.length > 20) cloudLogs = cloudLogs.slice(0, 20);
                     localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
+                    updateActivityBadge();
+                } else if (logData === null || (cloudLogs && cloudLogs.length === 0)) {
+                    localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify([]));
                     updateActivityBadge();
                 }
             }
