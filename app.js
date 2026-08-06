@@ -2066,16 +2066,37 @@ function initApp() {
         }
     });
 
-    // Delegate click events on any rendered image in reader messages or card attachments
+    // Delegate click events on any rendered image or image attachment link across the site
     document.addEventListener('click', (e) => {
-        const targetImg = e.target.closest('.reader-messages-list img, .msg-body img, .article-card img, .image-preview-container img');
-        if (targetImg && targetImg.src && !targetImg.classList.contains('no-lightbox')) {
+        // 1. Check if an <img> tag was clicked
+        const clickedImg = e.target.closest('img');
+        if (clickedImg && clickedImg.src && !clickedImg.closest('#imageLightboxModal') && !clickedImg.classList.contains('no-lightbox')) {
             e.preventDefault();
             e.stopPropagation();
-            const altOrTitle = targetImg.alt || targetImg.title || 'Ảnh lá số / luận giải';
-            openImageLightbox(targetImg.src, altOrTitle);
+            const altOrTitle = clickedImg.alt || clickedImg.title || 'Ảnh lá số / luận giải';
+            openImageLightbox(clickedImg.src, altOrTitle);
+            return;
         }
-    });
+
+        // 2. Check if an <a> link pointing to an image or image attachment was clicked
+        const clickedLink = e.target.closest('a');
+        if (clickedLink && clickedLink.href && !clickedLink.closest('#imageLightboxModal')) {
+            const href = clickedLink.href.toLowerCase();
+            const text = (clickedLink.textContent || '').toLowerCase();
+            const isImgLink = href.match(/\.(png|jpe?g|webp|gif|svg)(\?.*)?$/) || 
+                              href.startsWith('data:image/') || 
+                              text.includes('image.png') || 
+                              text.includes('.png') || 
+                              text.includes('.jpg') || 
+                              text.includes('tệp đính kèm');
+
+            if (isImgLink) {
+                e.preventDefault();
+                e.stopPropagation();
+                openImageLightbox(clickedLink.href, clickedLink.textContent || 'Ảnh lá số / đính kèm');
+            }
+        }
+    }, true);
 
     renderNavigation();
     
