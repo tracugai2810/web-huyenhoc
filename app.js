@@ -68,7 +68,6 @@ function initApp() {
     
     const listView = document.getElementById('listView');
     const readerView = document.getElementById('readerView');
-    const heroBanner = document.getElementById('heroBanner');
     
     const currentCategoryTitle = document.getElementById('currentCategoryTitle');
     const articleCountBadge = document.getElementById('articleCountBadge');
@@ -490,7 +489,6 @@ function initApp() {
     function showListView() {
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
-        if (heroBanner && !searchQuery.trim()) heroBanner.style.display = 'block';
         if (backToListBtnHeader) backToListBtnHeader.style.display = 'none';
 
         if (searchQuery.trim()) {
@@ -1240,7 +1238,6 @@ function initApp() {
 
         renderReaderMessages(article, activeSearchQuery);
 
-        if (heroBanner) heroBanner.style.display = 'none';
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
 
