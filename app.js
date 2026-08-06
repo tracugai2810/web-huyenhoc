@@ -1,12 +1,15 @@
 // ==========================================================================
-// KNOWLEDGE BASE LOGIC - SMART ACCENT & WORD BOUNDARY SEARCH ENGINE (V19)
+// BÁCH KHOA HUYỀN HỌC - OFFICIAL GOOGLE FIREBASE REALTIME CLOUD ENGINE (V21)
 // ==========================================================================
 
 function initApp() {
-    console.log("Initializing Bách Khoa Huyền Học App...");
+    console.log("Initializing Bách Khoa Huyền Học App with Official Google Firebase Cloud...");
 
-    // Shared Keyless Cloud Storage URL for Real-Time System-Wide Activity Logs
-    const SHARED_CLOUD_LOG_URL = 'https://jsonblob.com/api/jsonBlob/019fd5d1-17ad-7774-947f-3620d73210b9';
+    // Official User's Google Firebase Cloud Database REST Endpoints
+    const FIREBASE_BASE_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app';
+    const FIREBASE_LOGS_URL = `${FIREBASE_BASE_URL}/logs.json`;
+    const FIREBASE_ARTICLES_URL = `${FIREBASE_BASE_URL}/custom_articles.json`;
+    const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -126,17 +129,24 @@ function initApp() {
         }
     }
 
-    // Synchronize Real-Time System-Wide Activity Logs from Cloud API
+    // Synchronize Real-Time System-Wide Activity Logs from Google Firebase Cloud API
     async function syncLogsFromCloud() {
         try {
             if (typeof fetch === 'function') {
-                const res = await fetch(SHARED_CLOUD_LOG_URL, {
+                const res = await fetch(FIREBASE_LOGS_URL, {
                     method: 'GET',
                     headers: { 'Accept': 'application/json' }
                 });
                 if (res.ok) {
-                    const cloudLogs = await res.json();
-                    if (Array.isArray(cloudLogs)) {
+                    const data = await res.json();
+                    let cloudLogs = [];
+                    if (Array.isArray(data)) {
+                        cloudLogs = data;
+                    } else if (data && typeof data === 'object') {
+                        cloudLogs = Object.values(data);
+                    }
+                    if (cloudLogs.length > 0) {
+                        cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
                         localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                         updateActivityBadge();
                         return cloudLogs;
@@ -144,12 +154,12 @@ function initApp() {
                 }
             }
         } catch (err) {
-            console.warn("Cloud log fetch warning:", err);
+            console.warn("Firebase Cloud log fetch warning:", err);
         }
         return getLocalActivityLogs();
     }
 
-    // Log User Action & Push to Cloud for All Users
+    // Log User Action & Push to Official Google Firebase Cloud
     async function logActivity(actionText) {
         const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
         const logItem = {
@@ -161,10 +171,11 @@ function initApp() {
         let currentLogs = [];
         try {
             if (typeof fetch === 'function') {
-                const res = await fetch(SHARED_CLOUD_LOG_URL);
+                const res = await fetch(FIREBASE_LOGS_URL);
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) currentLogs = data;
+                    else if (data && typeof data === 'object') currentLogs = Object.values(data);
                 }
             }
         } catch (e) {}
@@ -181,17 +192,17 @@ function initApp() {
         } catch (e) {}
         updateActivityBadge();
 
-        // Asynchronously Update Cloud Storage JSON Blob
+        // Asynchronously Update Google Firebase Cloud
         try {
             if (typeof fetch === 'function') {
-                fetch(SHARED_CLOUD_LOG_URL, {
+                fetch(FIREBASE_LOGS_URL, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify(currentLogs)
-                }).catch(err => console.warn("Cloud log PUT warning:", err));
+                }).catch(err => console.warn("Firebase Cloud log PUT warning:", err));
             }
         } catch (err) {}
     }
@@ -208,7 +219,7 @@ function initApp() {
         if (!activityLogBody) return;
         activityLogBody.innerHTML = `
             <div style="text-align: center; padding: 24px 10px; color: var(--text-muted);">
-                🔄 Đang tải lịch sử thao tác từ máy chủ toàn hệ thống...
+                🔄 Đang tải nhật ký thao tác từ Google Firebase Cloud...
             </div>
         `;
 
@@ -458,6 +469,57 @@ function initApp() {
         deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
     } catch (e) {
         console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
+    }
+
+    // Synchronize Shared Custom Topics & Messages across ALL users from Google Firebase Cloud Database!
+    async function syncCustomArticlesFromCloud() {
+        try {
+            if (typeof fetch === 'function') {
+                const res = await fetch(FIREBASE_ARTICLES_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    let cloudArticles = [];
+                    if (Array.isArray(data)) cloudArticles = data;
+                    else if (data && typeof data === 'object') cloudArticles = Object.values(data);
+
+                    if (cloudArticles.length > 0) {
+                        let mergedMap = new Map();
+                        customArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
+                        cloudArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
+
+                        customArticles = Array.from(mergedMap.values());
+                        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+
+                        allArticles = getCombinedArticles();
+                        refreshCategories();
+                        renderNavigation();
+                        renderArticleList();
+
+                        if (currentArticleId) {
+                            const activeArt = allArticles.find(a => a.id === currentArticleId);
+                            if (activeArt) renderReaderMessages(activeArt);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Firebase Cloud custom articles sync warning:", err);
+        }
+    }
+
+    // Push Custom Topics & Messages to Google Firebase Cloud Storage for ALL Users
+    function saveCustomArticlesToCloud(articlesList) {
+        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(articlesList));
+        if (typeof fetch === 'function') {
+            fetch(FIREBASE_ARTICLES_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(articlesList)
+            }).catch(err => console.warn("Firebase Cloud custom articles PUT warning:", err));
+        }
     }
 
     function getCombinedArticles() {
@@ -1200,13 +1262,13 @@ function initApp() {
         } else {
             customArticles.push(article);
         }
-        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-
+        
+        saveCustomArticlesToCloud(customArticles);
         allArticles = getCombinedArticles();
         renderReaderMessages(article);
     }
 
-    // Image Upload & Paste Handler (~100KB Auto Compression)
+    // Image Upload & Paste Handler (~50KB Auto Compression)
     function compressImageFile(file, maxWidth = 1200, quality = 0.75, callback) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1325,8 +1387,8 @@ function initApp() {
             } else {
                 customArticles.push(article);
             }
-            localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-
+            
+            saveCustomArticlesToCloud(customArticles);
             allArticles = getCombinedArticles();
 
             if (inlineMsgTextarea) inlineMsgTextarea.value = '';
@@ -1509,9 +1571,7 @@ function initApp() {
                 logActivity(`Tạo chủ đề mới "${title}" trong chuyên mục "${cat}"`);
             }
 
-            try {
-                localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-            } catch (err) {}
+            saveCustomArticlesToCloud(customArticles);
 
             allArticles = getCombinedArticles();
             refreshCategories();
@@ -1540,6 +1600,12 @@ function initApp() {
                         localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
                     } catch (e) {}
                     
+                    const custIdx = customArticles.findIndex(a => a.id === currentArticleId);
+                    if (custIdx >= 0) {
+                        customArticles.splice(custIdx, 1);
+                        saveCustomArticlesToCloud(customArticles);
+                    }
+
                     logActivity(`Xóa toàn bộ chủ đề "${topicTitle}"`);
                     allArticles = getCombinedArticles();
                     refreshCategories();
@@ -1678,11 +1744,12 @@ function initApp() {
         renderArticleList();
     }
 
-    // Initial background cloud log sync
+    // Initial background cloud log & custom article sync with Official Google Firebase Cloud
     syncLogsFromCloud();
+    syncCustomArticlesFromCloud();
 
     window.onhashchange = restoreStateFromHash;
-    console.log("App initialization completed. Articles loaded:", allArticles.length);
+    console.log("App initialization completed with Google Firebase Cloud. Articles loaded:", allArticles.length);
 }
 
 // Ensure execution
