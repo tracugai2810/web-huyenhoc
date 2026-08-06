@@ -358,6 +358,50 @@ function initApp() {
         };
     }
 
+    // Global Toast Notification Helper
+    function showToast(message, type = 'success', duration = 3000) {
+        let container = document.getElementById('toastContainer');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toastContainer';
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast-item toast-${type}`;
+
+        let icon = '✅';
+        if (type === 'danger') icon = '🗑️';
+        else if (type === 'warning') icon = '⚠️';
+        else if (type === 'info') icon = 'ℹ️';
+
+        toast.innerHTML = `
+            <span class="toast-icon">${icon}</span>
+            <span class="toast-message">${escapeHtml(message)}</span>
+            <button class="toast-close" aria-label="Đóng">&times;</button>
+            <div class="toast-progress" style="animation-duration: ${duration}ms;"></div>
+        `;
+
+        const closeBtn = toast.querySelector('.toast-close');
+        let timer = null;
+
+        function dismiss() {
+            if (timer) clearTimeout(timer);
+            toast.classList.add('toast-hiding');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 280);
+        }
+
+        closeBtn.onclick = dismiss;
+        timer = setTimeout(dismiss, duration);
+
+        container.appendChild(toast);
+    }
+
     // Image Upload Buffer
     let pendingBase64Images = [];
 
@@ -406,6 +450,7 @@ function initApp() {
                 localStorage.setItem('APP_AUTHENTICATED', 'true');
                 logActivity(`Xác thực mật khẩu & Đăng nhập Nickname tác giả mới: "${nickVal}"`);
                 if (mandatoryNickModal) mandatoryNickModal.classList.remove('active');
+                showToast(`Đăng nhập thành công! Chào mừng tác giả "${nickVal}"`, 'success');
             }
         };
     }
@@ -420,6 +465,7 @@ function initApp() {
                     const oldNick = currentUsername;
                     setUsername(val);
                     logActivity(`Đổi Nickname từ "${oldNick}" thành "${val}"`);
+                    showToast(`Đã đổi Nickname tác giả thành "${val}"`, 'info');
                 }
             );
         };
@@ -470,6 +516,7 @@ function initApp() {
             document.documentElement.setAttribute('data-theme', theme);
             localStorage.setItem('APP_THEME', theme);
             updateThemeIcon(theme);
+            showToast(`Đã chuyển giao diện sang chế độ ${theme === 'dark' ? 'Tối 🌙' : 'Sáng ☀️'}`, 'info');
         };
     }
 
@@ -909,7 +956,7 @@ function initApp() {
                     refreshCategories();
                     selectCategory(newName);
                     logActivity(`Đổi tên chuyên mục "${oldCat}" thành "${newName}"`);
-                    showCustomAlert("Thành công", `Đã đổi tên chuyên mục thành "${newName}"!`);
+                    showToast(`Đã đổi tên chuyên mục thành "${newName}"`, 'success');
                 }
             );
         };
@@ -950,6 +997,7 @@ function initApp() {
                     refreshCategories();
                     logActivity(`Xóa chuyên mục "${deletedName}" (${articlesToDelete.length} chủ đề)`);
                     selectCategory('ALL');
+                    showToast(`Đã xóa chuyên mục "${deletedName}"`, 'danger');
                 }
             );
         };
@@ -1403,6 +1451,7 @@ function initApp() {
                                 parsedMsgs[idx].bodyText = updatedText;
                                 saveUpdatedMessagesToArticle(article, parsedMsgs);
                                 logActivity(`Sửa đoạn luận giải trong chủ đề "${article.title}"`);
+                                showToast('Đã lưu chỉnh sửa đoạn luận giải', 'success');
                             }
                         };
                     }
@@ -1420,6 +1469,7 @@ function initApp() {
                             parsedMsgs.splice(idx, 1);
                             saveUpdatedMessagesToArticle(article, parsedMsgs);
                             logActivity(`Xóa đoạn luận giải trong chủ đề "${article.title}"`);
+                            showToast('Đã xóa đoạn luận giải', 'danger');
                         }
                     );
                 };
@@ -1517,6 +1567,7 @@ function initApp() {
                     compressImageFile(blob, 1200, 0.75, (compressedDataUrl) => {
                         pendingBase64Images.push(compressedDataUrl);
                         renderImagePreviews();
+                        showToast('Đã dán đính kèm ảnh thành công', 'info');
                     });
                 }
             }
@@ -1532,6 +1583,7 @@ function initApp() {
                     compressImageFile(file, 1200, 0.75, (compressedDataUrl) => {
                         pendingBase64Images.push(compressedDataUrl);
                         renderImagePreviews();
+                        showToast('Đã đính kèm ảnh thành công', 'info');
                     });
                 }
             }
@@ -1587,6 +1639,7 @@ function initApp() {
             }
 
             logActivity(`Đăng luận giải mới vào chủ đề "${article.title}"`);
+            showToast('Đã thêm luận giải mới thành công', 'success');
             renderReaderMessages(article);
         };
     }
@@ -1636,6 +1689,7 @@ function initApp() {
             renderNavigation();
             selectCategory(newCat);
             logActivity(`Tạo chuyên mục mới "${newCat}"`);
+            showToast(`Đã tạo chuyên mục mới "${newCat}"`, 'success');
             if (newCategoryTitleInput) newCategoryTitleInput.value = "";
             categoryModal.classList.remove('active');
         };
@@ -1750,6 +1804,7 @@ function initApp() {
                     }
                     targetId = id;
                     logActivity(`Chỉnh sửa tên chủ đề thành "${title}"`);
+                    showToast(`Đã cập nhật chủ đề "${title}"`, 'success');
                 }
             } else {
                 const newId = `custom_${Date.now()}`;
@@ -1768,6 +1823,7 @@ function initApp() {
                 customArticles.push(newArt);
                 targetId = newId;
                 logActivity(`Tạo chủ đề mới "${title}" trong chuyên mục "${cat}"`);
+                showToast(`Đã tạo chủ đề mới "${title}"`, 'success');
             }
 
             // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
@@ -1808,6 +1864,7 @@ function initApp() {
 
                     // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
                     logActivity(`Xóa toàn bộ chủ đề "${topicTitle}"`);
+                    showToast(`Đã xóa toàn bộ chủ đề "${topicTitle}"`, 'danger');
                     allArticles = getCombinedArticles();
                     refreshCategories();
                     renderNavigation();
@@ -1834,6 +1891,7 @@ function initApp() {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             logActivity(`Tải file .md bài viết "${article.title}"`);
+            showToast(`Đã tải file Markdown bài viết "${article.title}"`, 'info');
         };
     }
 
@@ -1857,6 +1915,7 @@ function initApp() {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
             logActivity(`Xuất dữ liệu sao lưu hệ thống`);
+            showToast('Đã xuất dữ liệu sao lưu hệ thống', 'success');
         };
     }
 
@@ -1907,6 +1966,7 @@ function initApp() {
             clearSearchBtn.style.display = 'none';
             showListView();
             renderArticleList();
+            showToast('Đã xóa từ khóa tìm kiếm', 'info');
         };
     }
 
