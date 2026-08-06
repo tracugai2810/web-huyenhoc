@@ -1978,6 +1978,26 @@ function initApp() {
         };
     }
 
+    // Sticky Title Scroll Indicator
+    function handleStickyTitleScroll() {
+        const titleEl = document.getElementById('readerTitle');
+        if (!titleEl || !readerView || !readerView.classList.contains('active')) return;
+
+        const searchSection = document.getElementById('globalStickySearchSection');
+        if (!searchSection) return;
+
+        const searchBottom = searchSection.getBoundingClientRect().bottom;
+        const titleRect = titleEl.getBoundingClientRect();
+
+        if (titleRect.top <= searchBottom + 4) {
+            titleEl.classList.add('is-stuck');
+        } else {
+            titleEl.classList.remove('is-stuck');
+        }
+    }
+
+    window.addEventListener('scroll', handleStickyTitleScroll, { passive: true });
+
     // RESTORE STATE FROM URL HASH ON PAGE LOAD / REFRESH!
     function restoreStateFromHash() {
         const hash = (window.location && window.location.hash) ? window.location.hash : '';

@@ -842,6 +842,22 @@ body.is-searching #headerRightActions {
     font-size: 24px;
     font-weight: 800;
     line-height: 1.35;
+    position: -webkit-sticky;
+    position: sticky;
+    top: 106px;
+    z-index: 42;
+    background-color: var(--bg-card);
+    padding: 12px 16px;
+    margin-left: -16px;
+    margin-right: -16px;
+    margin-top: -12px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.reader-article-title.is-stuck {
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.09);
 }
 
 .reader-sep {
@@ -1330,7 +1346,14 @@ mark.active-search-match {
     }
 
     .reader-article-card { padding: 14px; gap: 12px; }
-    .reader-article-title { font-size: 18px; }
+    .reader-article-title {
+        font-size: 17px;
+        top: 92px;
+        padding: 8px 12px;
+        margin-left: -12px;
+        margin-right: -12px;
+        margin-top: -8px;
+    }
     .msg-block { padding: 12px; gap: 8px; }
     .inline-add-msg-box { padding: 12px; }
     
