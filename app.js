@@ -12,9 +12,10 @@ function initApp() {
     const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
     const FIREBASE_DELETED_URL = `${FIREBASE_BASE_URL}/deleted_article_ids.json`;
 
-    // Hanoi Timezone (GMT+7) Formatter
+    // Hanoi Timezone (GMT+7) Formatter (HH:mm:ss DD/MM/YYYY)
     function getVietnamTimeString() {
         try {
+            const now = new Date();
             const options = {
                 timeZone: 'Asia/Ho_Chi_Minh',
                 year: 'numeric',
@@ -25,9 +26,21 @@ function initApp() {
                 second: '2-digit',
                 hour12: false
             };
-            return new Intl.DateTimeFormat('sv-SE', options).format(new Date());
+            const parts = new Intl.DateTimeFormat('en-GB', options).formatToParts(now);
+            let day = '', month = '', year = '', hour = '', minute = '', second = '';
+            for (const p of parts) {
+                if (p.type === 'day') day = p.value;
+                else if (p.type === 'month') month = p.value;
+                else if (p.type === 'year') year = p.value;
+                else if (p.type === 'hour') hour = p.value;
+                else if (p.type === 'minute') minute = p.value;
+                else if (p.type === 'second') second = p.value;
+            }
+            return `${hour}:${minute}:${second} ${day}/${month}/${year}`;
         } catch (e) {
-            return new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+            const now = new Date();
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())} ${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${now.getFullYear()}`;
         }
     }
 
