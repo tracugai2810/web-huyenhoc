@@ -11,6 +11,7 @@ function initApp() {
     const FIREBASE_ARTICLES_URL = `${FIREBASE_BASE_URL}/custom_articles.json`;
     const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
     const FIREBASE_DELETED_URL = `${FIREBASE_BASE_URL}/deleted_article_ids.json`;
+    const FIREBASE_DELETED_CATS_URL = `${FIREBASE_BASE_URL}/deleted_category_names.json`;
 
     // Write Lock Timestamp to prevent Stale GET Overwrites (Anti-Race Condition)
     let lastCloudWriteTime = 0;
@@ -479,11 +480,13 @@ function initApp() {
     let customArticles = [];
     let customCategories = [];
     let deletedArticleIds = [];
+    let deletedCategoryNames = [];
 
     // Load local storage initial fallback
     try { customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]'); } catch (e) {}
     try { customCategories = JSON.parse(localStorage.getItem('CUSTOM_CATEGORIES') || '[]'); } catch (e) {}
     try { deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]'); } catch (e) {}
+    try { deletedCategoryNames = JSON.parse(localStorage.getItem('DELETED_CATEGORY_NAMES') || '[]'); } catch (e) {}
 
     // Unified Master Realtime Cloud Synchronization Function across All Devices!
     async function syncAllFromCloud() {
@@ -495,58 +498,73 @@ function initApp() {
         }
 
         try {
-            const [artRes, catRes, delRes, logRes] = await Promise.all([
+            const [artRes, catRes, delRes, logRes, delCatRes] = await Promise.all([
                 fetch(FIREBASE_ARTICLES_URL).catch(() => null),
                 fetch(FIREBASE_CATEGORIES_URL).catch(() => null),
                 fetch(FIREBASE_DELETED_URL).catch(() => null),
-                fetch(FIREBASE_LOGS_URL).catch(() => null)
+                fetch(FIREBASE_LOGS_URL).catch(() => null),
+                fetch(FIREBASE_DELETED_CATS_URL).catch(() => null)
             ]);
 
             let hasChanged = false;
 
-            // 1. Sync Deleted IDs
+            // 1. Sync Deleted Article IDs
             if (delRes && delRes.ok) {
                 const delData = await delRes.json();
                 let cloudDel = [];
                 if (Array.isArray(delData)) cloudDel = delData;
                 else if (delData && typeof delData === 'object') cloudDel = Object.values(delData);
 
-                if (JSON.stringify(cloudDel) !== JSON.stringify(deletedArticleIds)) {
+                if (Array.isArray(cloudDel) && JSON.stringify(cloudDel) !== JSON.stringify(deletedArticleIds)) {
                     deletedArticleIds = cloudDel;
                     localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
                     hasChanged = true;
                 }
             }
 
-            // 2. Sync Categories
+            // 2. Sync Deleted Category Names
+            if (delCatRes && delCatRes.ok) {
+                const delCatData = await delCatRes.json();
+                let cloudDelCats = [];
+                if (Array.isArray(delCatData)) cloudDelCats = delCatData;
+                else if (delCatData && typeof delCatData === 'object') cloudDelCats = Object.values(delCatData);
+
+                if (Array.isArray(cloudDelCats) && JSON.stringify(cloudDelCats) !== JSON.stringify(deletedCategoryNames)) {
+                    deletedCategoryNames = cloudDelCats;
+                    localStorage.setItem('DELETED_CATEGORY_NAMES', JSON.stringify(deletedCategoryNames));
+                    hasChanged = true;
+                }
+            }
+
+            // 3. Sync Categories
             if (catRes && catRes.ok) {
                 const catData = await catRes.json();
                 let cloudCats = [];
                 if (Array.isArray(catData)) cloudCats = catData;
                 else if (catData && typeof catData === 'object') cloudCats = Object.values(catData);
 
-                if (cloudCats.length > 0 && JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
+                if (Array.isArray(cloudCats) && JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
                     customCategories = cloudCats;
                     localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
                     hasChanged = true;
                 }
             }
 
-            // 3. Sync Custom Articles
+            // 4. Sync Custom Articles
             if (artRes && artRes.ok) {
                 const artData = await artRes.json();
                 let cloudArts = [];
                 if (Array.isArray(artData)) cloudArts = artData;
                 else if (artData && typeof artData === 'object') cloudArts = Object.values(artData);
 
-                if (cloudArts.length > 0 && JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
+                if (Array.isArray(cloudArts) && JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
                     customArticles = cloudArts;
                     localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
                     hasChanged = true;
                 }
             }
 
-            // 4. Sync Logs
+            // 5. Sync Logs
             if (logRes && logRes.ok) {
                 const logData = await logRes.json();
                 let cloudLogs = [];
@@ -606,6 +624,19 @@ function initApp() {
         }
     }
 
+    function saveDeletedCategoryNamesToCloud(delCatsList) {
+        lastCloudWriteTime = Date.now();
+        deletedCategoryNames = delCatsList;
+        try { localStorage.setItem('DELETED_CATEGORY_NAMES', JSON.stringify(delCatsList)); } catch (e) {}
+        if (typeof fetch === 'function') {
+            fetch(FIREBASE_DELETED_CATS_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(delCatsList)
+            }).catch(e => {});
+        }
+    }
+
     function saveCustomArticlesToCloud(articlesList) {
         lastCloudWriteTime = Date.now();
         customArticles = articlesList;
@@ -626,13 +657,13 @@ function initApp() {
         let articlesMap = new Map();
         
         defaultArticles.forEach(art => {
-            if (art && art.id && !deletedArticleIds.includes(art.id)) {
+            if (art && art.id && !deletedArticleIds.includes(art.id) && (!art.category || !deletedCategoryNames.includes(art.category))) {
                 articlesMap.set(art.id, art);
             }
         });
 
         customArticles.forEach(art => {
-            if (art && art.id && !deletedArticleIds.includes(art.id)) {
+            if (art && art.id && !deletedArticleIds.includes(art.id) && (!art.category || !deletedCategoryNames.includes(art.category))) {
                 articlesMap.set(art.id, art);
             }
         });
@@ -644,10 +675,22 @@ function initApp() {
     let categories = [];
 
     function refreshCategories() {
-        let catSet = new Set([...defaultCategories, ...customCategories]);
-        allArticles.forEach(a => {
-            if (a && a.category) catSet.add(a.category);
+        let catSet = new Set();
+
+        defaultCategories.forEach(c => {
+            if (c && !deletedCategoryNames.includes(c)) catSet.add(c);
         });
+
+        customCategories.forEach(c => {
+            if (c && !deletedCategoryNames.includes(c)) catSet.add(c);
+        });
+
+        allArticles.forEach(a => {
+            if (a && a.category && !deletedCategoryNames.includes(a.category)) {
+                catSet.add(a.category);
+            }
+        });
+
         categories = Array.from(catSet).sort();
     }
     refreshCategories();
@@ -838,17 +881,31 @@ function initApp() {
                         }
                     });
 
+                    // Add oldCat to deletedCategoryNames so defaultCategories won't bring oldCat back on refresh
+                    if (!deletedCategoryNames.includes(oldCat)) {
+                        deletedCategoryNames.push(oldCat);
+                    }
+                    saveDeletedCategoryNamesToCloud(deletedCategoryNames);
+
+                    // Remove newName from deletedCategoryNames if it was previously deleted
+                    const delIdx = deletedCategoryNames.indexOf(newName);
+                    if (delIdx >= 0) {
+                        deletedCategoryNames.splice(delIdx, 1);
+                        saveDeletedCategoryNamesToCloud(deletedCategoryNames);
+                    }
+
                     const idx = defaultCategories.indexOf(activeCategory);
                     if (idx >= 0) defaultCategories[idx] = newName;
                     
                     const cIdx = customCategories.indexOf(activeCategory);
                     if (cIdx >= 0) customCategories[cIdx] = newName;
-                    else customCategories.push(newName);
+                    else if (!customCategories.includes(newName)) customCategories.push(newName);
 
                     // OPTIMISTIC INSTANT UI UPDATES (0ms delay)
                     saveCategoriesToCloud(customCategories);
                     saveCustomArticlesToCloud(customArticles);
                     
+                    allArticles = getCombinedArticles();
                     refreshCategories();
                     selectCategory(newName);
                     logActivity(`Đổi tên chuyên mục "${oldCat}" thành "${newName}"`);
@@ -874,6 +931,12 @@ function initApp() {
                     });
 
                     saveDeletedIdsToCloud(deletedArticleIds);
+
+                    // Mark activeCategory as deleted so defaultCategories won't bring it back on F5
+                    if (!deletedCategoryNames.includes(deletedName)) {
+                        deletedCategoryNames.push(deletedName);
+                    }
+                    saveDeletedCategoryNamesToCloud(deletedCategoryNames);
 
                     const catIdx = defaultCategories.indexOf(activeCategory);
                     if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
@@ -1556,6 +1619,13 @@ function initApp() {
                 return;
             }
 
+            // Remove from deletedCategoryNames if it was previously deleted
+            const delIdx = deletedCategoryNames.indexOf(newCat);
+            if (delIdx >= 0) {
+                deletedCategoryNames.splice(delIdx, 1);
+                saveDeletedCategoryNamesToCloud(deletedCategoryNames);
+            }
+
             if (!customCategories.includes(newCat)) {
                 customCategories.push(newCat);
                 saveCategoriesToCloud(customCategories);
@@ -1774,7 +1844,8 @@ function initApp() {
                 articles: allArticles,
                 customArticles: customArticles,
                 customCategories: customCategories,
-                deletedArticleIds: deletedArticleIds
+                deletedArticleIds: deletedArticleIds,
+                deletedCategoryNames: deletedCategoryNames
             };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
