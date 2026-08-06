@@ -1,11 +1,11 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - FIXED EDITION (NO TDZ ERROR)
+// KNOWLEDGE BASE APPLICATION LOGIC - BE VIETNAM PRO + DROPDOWN CATEGORY SELECT
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
 
-    // DOM Elements - Select all first
+    // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const closeSidebarBtn = document.getElementById('closeSidebarBtn');
@@ -56,10 +56,11 @@ function initApp() {
     const articleForm = document.getElementById('articleForm');
     const modalTitle = document.getElementById('modalTitle');
     const editArticleId = document.getElementById('editArticleId');
-    const formCategory = document.getElementById('formCategory');
+    
+    const formCategorySelect = document.getElementById('formCategorySelect');
+    const formNewCategoryInput = document.getElementById('formNewCategoryInput');
     const formTitle = document.getElementById('formTitle');
     const formContent = document.getElementById('formContent');
-    const categorySuggestions = document.getElementById('categorySuggestions');
 
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
@@ -90,10 +91,6 @@ function initApp() {
     // 2. Data Initialization
     let defaultArticles = window.INITIAL_ARTICLES || [];
     let defaultCategories = window.INITIAL_CATEGORIES || [];
-
-    if (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length === 0) {
-        console.warn("data_store.js not detected yet!");
-    }
 
     let customArticles = [];
     let deletedArticleIds = [];
@@ -198,14 +195,20 @@ function initApp() {
             });
         }
 
-        // Modal Datalist
-        if (categorySuggestions) {
-            categorySuggestions.innerHTML = '';
+        // Populate Category Dropdown Select in Modal
+        if (formCategorySelect) {
+            formCategorySelect.innerHTML = '';
             categories.forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat;
-                categorySuggestions.appendChild(opt);
+                opt.textContent = `📂 ${cat}`;
+                formCategorySelect.appendChild(opt);
             });
+            // Option to create a new category
+            const newOpt = document.createElement('option');
+            newOpt.value = '__CREATE_NEW__';
+            newOpt.textContent = '➕ Tạo chuyên mục mới...';
+            formCategorySelect.appendChild(newOpt);
         }
 
         // Hero Stats
@@ -224,6 +227,23 @@ function initApp() {
     if (sidebarFilterInput) {
         sidebarFilterInput.oninput = (e) => {
             renderNavigation(e.target.value);
+        };
+    }
+
+    // Category Select Dropdown change listener
+    if (formCategorySelect) {
+        formCategorySelect.onchange = () => {
+            if (formCategorySelect.value === '__CREATE_NEW__') {
+                if (formNewCategoryInput) {
+                    formNewCategoryInput.style.display = 'block';
+                    formNewCategoryInput.focus();
+                }
+            } else {
+                if (formNewCategoryInput) {
+                    formNewCategoryInput.style.display = 'none';
+                    formNewCategoryInput.value = '';
+                }
+            }
         };
     }
 
@@ -394,9 +414,22 @@ function initApp() {
 
     // 6. Modal Add / Edit Operations
     function openAddModal() {
+        renderNavigation(); // Refresh categories in dropdown
         if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết Mới";
         if (editArticleId) editArticleId.value = "";
-        if (formCategory) formCategory.value = activeCategory !== 'ALL' ? activeCategory : "";
+        
+        if (formCategorySelect) {
+            if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
+                formCategorySelect.value = activeCategory;
+            } else if (categories.length > 0) {
+                formCategorySelect.value = categories[0];
+            }
+        }
+        if (formNewCategoryInput) {
+            formNewCategoryInput.style.display = 'none';
+            formNewCategoryInput.value = "";
+        }
+
         if (formTitle) formTitle.value = "";
         if (formContent) formContent.value = "";
         if (articleModal) articleModal.classList.add('active');
@@ -407,9 +440,23 @@ function initApp() {
         const article = allArticles.find(a => a.id === currentArticleId);
         if (!article) return;
 
+        renderNavigation(); // Refresh categories
         if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Bài Viết";
         if (editArticleId) editArticleId.value = article.id;
-        if (formCategory) formCategory.value = article.category;
+        
+        if (formCategorySelect) {
+            if (categories.includes(article.category)) {
+                formCategorySelect.value = article.category;
+                if (formNewCategoryInput) formNewCategoryInput.style.display = 'none';
+            } else {
+                formCategorySelect.value = '__CREATE_NEW__';
+                if (formNewCategoryInput) {
+                    formNewCategoryInput.style.display = 'block';
+                    formNewCategoryInput.value = article.category;
+                }
+            }
+        }
+        
         if (formTitle) formTitle.value = article.title;
         if (formContent) formContent.value = article.content;
         if (articleModal) articleModal.classList.add('active');
@@ -423,11 +470,23 @@ function initApp() {
         articleForm.onsubmit = (e) => {
             e.preventDefault();
             const id = editArticleId ? editArticleId.value : "";
-            const cat = formCategory ? formCategory.value.trim() : "";
+            
+            let cat = "";
+            if (formCategorySelect) {
+                if (formCategorySelect.value === '__CREATE_NEW__') {
+                    cat = formNewCategoryInput ? formNewCategoryInput.value.trim() : "";
+                } else {
+                    cat = formCategorySelect.value.trim();
+                }
+            }
+
             const title = formTitle ? formTitle.value.trim() : "";
             const content = formContent ? formContent.value.trim() : "";
 
-            if (!cat || !title || !content) return;
+            if (!cat || !title || !content) {
+                alert("Vui lòng điền đầy đủ Chuyên mục, Tiêu đề và Nội dung!");
+                return;
+            }
 
             if (id) {
                 let index = customArticles.findIndex(a => a.id === id);
