@@ -1,9 +1,24 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - FULL INTERACTIVE EDITION
+// KNOWLEDGE BASE APPLICATION LOGIC - IN-PLACE EDITING & STREAMLINED CREATION
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
+
+    // Persistent Username Setup
+    let currentUsername = localStorage.getItem('PERSISTENT_USERNAME') || 'DBC';
+
+    function setUsername(newUsername) {
+        if (!newUsername || !newUsername.trim()) return;
+        currentUsername = newUsername.trim();
+        localStorage.setItem('PERSISTENT_USERNAME', currentUsername);
+        
+        const displayUsername = document.getElementById('displayUsername');
+        if (displayUsername) displayUsername.textContent = `Tác giả: ${currentUsername}`;
+
+        const activeAuthorTag = document.getElementById('activeAuthorTag');
+        if (activeAuthorTag) activeAuthorTag.textContent = `👤 Người viết: ${currentUsername}`;
+    }
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -14,6 +29,7 @@ function initApp() {
     const sidebarCategoryList = document.getElementById('sidebarCategoryList');
     const sidebarFilterInput = document.getElementById('sidebarFilterInput');
     const addCategoryBtnSidebar = document.getElementById('addCategoryBtnSidebar');
+    const userProfileCard = document.getElementById('userProfileCard');
     
     const statArticlesCount = document.getElementById('statArticlesCount');
     const statCategoryCount = document.getElementById('statCategoryCount');
@@ -44,36 +60,18 @@ function initApp() {
     const readerTitle = document.getElementById('readerTitle');
     const readerContent = document.getElementById('readerContent');
     
-    const editArticleBtn = document.getElementById('editArticleBtn');
     const deleteArticleBtn = document.getElementById('deleteArticleBtn');
     const downloadMdBtn = document.getElementById('downloadMdBtn');
 
-    const addArticleBtn = document.getElementById('addArticleBtn');
     const exportBackupBtn = document.getElementById('exportBackupBtn');
     
-    // Inline Add Message Box Elements (Screenshot 3)
+    // Inline Add Message Box Elements
     const inlineMsgTextarea = document.getElementById('inlineMsgTextarea');
-    const msgNicknameInput = document.getElementById('msgNicknameInput');
     const msgImageFileInput = document.getElementById('msgImageFileInput');
     const imagePreviewContainer = document.getElementById('imagePreviewContainer');
     const submitInlineMsgBtn = document.getElementById('submitInlineMsgBtn');
 
     // Modals
-    const articleModal = document.getElementById('articleModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const cancelModalBtn = document.getElementById('cancelModalBtn');
-    const modalBackdrop = document.getElementById('modalBackdrop');
-    const articleForm = document.getElementById('articleForm');
-    const modalTitle = document.getElementById('modalTitle');
-    const editArticleId = document.getElementById('editArticleId');
-    
-    const formCategorySelect = document.getElementById('formCategorySelect');
-    const formNewCategoryInput = document.getElementById('formNewCategoryInput');
-    const formTitleSelect = document.getElementById('formTitleSelect');
-    const formTitleInput = document.getElementById('formTitleInput');
-    const formAuthorInput = document.getElementById('formAuthorInput');
-    const formContent = document.getElementById('formContent');
-
     const categoryModal = document.getElementById('categoryModal');
     const closeCategoryModalBtn = document.getElementById('closeCategoryModalBtn');
     const cancelCategoryModalBtn = document.getElementById('cancelCategoryModalBtn');
@@ -81,16 +79,42 @@ function initApp() {
     const categoryForm = document.getElementById('categoryForm');
     const newCategoryTitleInput = document.getElementById('newCategoryTitleInput');
 
+    const topicModal = document.getElementById('topicModal');
+    const closeTopicModalBtn = document.getElementById('closeTopicModalBtn');
+    const cancelTopicModalBtn = document.getElementById('cancelTopicModalBtn');
+    const topicModalBackdrop = document.getElementById('topicModalBackdrop');
+    const topicForm = document.getElementById('topicForm');
+    const topicCategorySelect = document.getElementById('topicCategorySelect');
+    const newTopicTitleInput = document.getElementById('newTopicTitleInput');
+
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navCategoriesBtn = document.getElementById('navCategoriesBtn');
-    const navAddBtn = document.getElementById('navAddBtn');
+    const navAddTopicBtn = document.getElementById('navAddTopicBtn');
     const navSearchFocusBtn = document.getElementById('navSearchFocusBtn');
 
     // Image Upload Buffer
     let pendingBase64Images = [];
 
-    // 1. Theme Management (Light / Dark)
+    // View Navigation Helpers
+    function showListView() {
+        if (readerView) readerView.classList.remove('active');
+        if (listView) listView.classList.add('active');
+        if (heroBanner) heroBanner.style.display = 'block';
+    }
+
+    // Initialize Username Badge
+    setUsername(currentUsername);
+    if (userProfileCard) {
+        userProfileCard.onclick = () => {
+            const input = prompt("Nhập Tên tác giả / Nickname cố định của bạn:", currentUsername);
+            if (input && input.trim()) {
+                setUsername(input.trim());
+            }
+        };
+    }
+
+    // Theme Management (Light / Dark)
     function updateThemeIcon(theme) {
         if (themeToggleBtn) {
             themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
@@ -110,7 +134,7 @@ function initApp() {
         };
     }
 
-    // 2. Data Initialization
+    // Data Initialization
     let defaultArticles = window.INITIAL_ARTICLES || [];
     let defaultCategories = window.INITIAL_CATEGORIES || [];
 
@@ -127,11 +151,6 @@ function initApp() {
         deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
     } catch (e) {
         console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
-    }
-
-    // Restore last used Nickname
-    if (msgNicknameInput) {
-        msgNicknameInput.value = localStorage.getItem('LAST_NICKNAME') || 'DBC';
     }
 
     function getCombinedArticles() {
@@ -171,7 +190,7 @@ function initApp() {
     let currentArticleId = null;
     let readerFontSize = 16;
 
-    // 3. Render Navigation Sidebar
+    // Render Navigation Sidebar
     function renderNavigation(filterFilterText = '') {
         let filteredCats = categories;
         if (filterFilterText.trim()) {
@@ -204,19 +223,15 @@ function initApp() {
             });
         }
 
-        // Populate Category Dropdown Select in Modal
-        if (formCategorySelect) {
-            formCategorySelect.innerHTML = '';
+        // Topic Modal Category Select
+        if (topicCategorySelect) {
+            topicCategorySelect.innerHTML = '';
             categories.forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat;
                 opt.textContent = `📂 ${cat}`;
-                formCategorySelect.appendChild(opt);
+                topicCategorySelect.appendChild(opt);
             });
-            const newOpt = document.createElement('option');
-            newOpt.value = '__CREATE_NEW__';
-            newOpt.textContent = '➕ Tạo chuyên mục mới...';
-            formCategorySelect.appendChild(newOpt);
         }
 
         // Hero Stats
@@ -239,80 +254,7 @@ function initApp() {
         };
     }
 
-    function refreshTitleDropdown(selectedCat) {
-        if (!formTitleSelect) return;
-        formTitleSelect.innerHTML = '';
-
-        let catArticles = [];
-        if (selectedCat && selectedCat !== '__CREATE_NEW__') {
-            catArticles = allArticles.filter(a => a.category === selectedCat);
-        }
-
-        const createOpt = document.createElement('option');
-        createOpt.value = '__CREATE_NEW_TITLE__';
-        createOpt.textContent = '➕ Tạo tên chủ đề / kênh mới...';
-        formTitleSelect.appendChild(createOpt);
-
-        catArticles.forEach(art => {
-            const opt = document.createElement('option');
-            opt.value = art.title;
-            opt.textContent = `📄 ${art.title}`;
-            formTitleSelect.appendChild(opt);
-        });
-
-        if (catArticles.length === 0) {
-            formTitleSelect.value = '__CREATE_NEW_TITLE__';
-            if (formTitleInput) {
-                formTitleInput.style.display = 'block';
-                formTitleInput.required = true;
-            }
-        } else {
-            formTitleSelect.value = catArticles[0].title;
-            if (formTitleInput) {
-                formTitleInput.style.display = 'none';
-                formTitleInput.required = false;
-            }
-        }
-    }
-
-    if (formCategorySelect) {
-        formCategorySelect.onchange = () => {
-            const val = formCategorySelect.value;
-            if (val === '__CREATE_NEW__') {
-                if (formNewCategoryInput) {
-                    formNewCategoryInput.style.display = 'block';
-                    formNewCategoryInput.focus();
-                }
-            } else {
-                if (formNewCategoryInput) {
-                    formNewCategoryInput.style.display = 'none';
-                    formNewCategoryInput.value = '';
-                }
-            }
-            refreshTitleDropdown(val);
-        };
-    }
-
-    if (formTitleSelect) {
-        formTitleSelect.onchange = () => {
-            const val = formTitleSelect.value;
-            if (val === '__CREATE_NEW_TITLE__') {
-                if (formTitleInput) {
-                    formTitleInput.style.display = 'block';
-                    formTitleInput.required = true;
-                    formTitleInput.focus();
-                }
-            } else {
-                if (formTitleInput) {
-                    formTitleInput.style.display = 'none';
-                    formTitleInput.required = false;
-                    formTitleInput.value = '';
-                }
-            }
-        };
-    }
-
-    // 4. Render Article List
+    // Render Article Grid List
     function renderArticleList() {
         if (!articleGrid) return;
         
@@ -353,7 +295,7 @@ function initApp() {
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
                     <h3>Không tìm thấy chủ đề nào</h3>
-                    <p>Hãy thử chọn chuyên mục khác hoặc thêm chủ đề mới vào chuyên mục này.</p>
+                    <p>Hãy bấm nút <b>"➕ Thêm Chủ Đề Mới"</b> ở trên để tạo chủ đề/kênh đầu tiên cho chuyên mục này.</p>
                 `;
             }
             return;
@@ -404,11 +346,10 @@ function initApp() {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // 5. Parse Markdown Content into Individual Messages (Screenshot 2)
+    // Parse Markdown Content into Individual Messages
     function parseMessagesFromContent(rawMarkdown) {
         if (!rawMarkdown) return [];
 
-        // Split messages by '### **[Author]** (`[Timestamp]`)' or '### **[Author]** ([Timestamp])'
         const msgRegex = /###\s*\*\*([^*]+)\*\*\s*\(([^)]+)\)/g;
 
         let matches = [];
@@ -423,10 +364,9 @@ function initApp() {
         }
 
         if (matches.length === 0) {
-            // Single message fallback
             return [{
                 id: 0,
-                author: 'Tác giả',
+                author: currentUsername,
                 timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
                 bodyText: rawMarkdown
             }];
@@ -449,21 +389,7 @@ function initApp() {
         return messagesList;
     }
 
-    // Re-build Markdown string from messages list
-    function buildMarkdownFromMessages(headerPart, messagesList) {
-        let lines = [];
-        if (headerPart) {
-            lines.append(headerPart.trim());
-        }
-        messagesList.forEach(m => {
-            lines.push(`### **${m.author}** (\`${m.timestamp}\`)`);
-            lines.push(m.bodyText);
-            lines.push('');
-        });
-        return lines.join('\n\n');
-    }
-
-    // 6. Reader View & Interactive Message Rendering
+    // Reader View & Interactive Message Rendering with IN-PLACE INLINE EDITING (Screenshot 1 solution)
     function openReaderView(id) {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -499,6 +425,7 @@ function initApp() {
         parsedMsgs.forEach((msg, idx) => {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-block';
+            msgDiv.setAttribute('data-msg-idx', idx);
 
             let renderedBody = "";
             try {
@@ -525,14 +452,47 @@ function initApp() {
                 <div class="msg-body markdown-body">${renderedBody}</div>
             `;
 
-            // Edit single message
+            // IN-PLACE INLINE EDITING (No browser popup!)
             const editBtn = msgDiv.querySelector('.edit-msg-btn');
-            if (editBtn) {
+            const msgBodyDiv = msgDiv.querySelector('.msg-body');
+
+            if (editBtn && msgBodyDiv) {
                 editBtn.onclick = () => {
-                    const newBody = prompt("Sửa nội dung luận giải:", msg.bodyText);
-                    if (newBody !== null && newBody.trim() !== "") {
-                        parsedMsgs[idx].bodyText = newBody.trim();
-                        saveUpdatedMessagesToArticle(article, parsedMsgs);
+                    if (msgDiv.classList.contains('editing')) return;
+                    msgDiv.classList.add('editing');
+
+                    const originalBody = msg.bodyText;
+                    msgBodyDiv.innerHTML = `
+                        <div class="msg-inline-editor">
+                            <textarea class="msg-inline-textarea" rows="4">${escapeHtml(originalBody)}</textarea>
+                            <div class="msg-inline-actions">
+                                <button type="button" class="btn btn-secondary cancel-inline-btn">Hủy</button>
+                                <button type="button" class="btn btn-primary save-inline-btn">Lưu chỉnh sửa</button>
+                            </div>
+                        </div>
+                    `;
+
+                    const textarea = msgBodyDiv.querySelector('.msg-inline-textarea');
+                    const saveInlineBtn = msgBodyDiv.querySelector('.save-inline-btn');
+                    const cancelInlineBtn = msgBodyDiv.querySelector('.cancel-inline-btn');
+
+                    if (textarea) textarea.focus();
+
+                    if (cancelInlineBtn) {
+                        cancelInlineBtn.onclick = () => {
+                            msgDiv.classList.remove('editing');
+                            renderReaderMessages(article);
+                        };
+                    }
+
+                    if (saveInlineBtn) {
+                        saveInlineBtn.onclick = () => {
+                            const newText = textarea.value.trim();
+                            if (newText) {
+                                parsedMsgs[idx].bodyText = newText;
+                                saveUpdatedMessagesToArticle(article, parsedMsgs);
+                            }
+                        };
                     }
                 };
             }
@@ -553,7 +513,6 @@ function initApp() {
     }
 
     function saveUpdatedMessagesToArticle(article, messagesList) {
-        // Extract original header lines (# Category / #Channel)
         let lines = (article.content || '').split('\n');
         let headerLines = [];
         for (let l of lines) {
@@ -574,7 +533,6 @@ function initApp() {
         article.msgCount = messagesList.length;
         article.preview = messagesList.length > 0 ? messagesList[0].bodyText.substring(0, 150) : "";
 
-        // Overwrite or update in customArticles
         let custIndex = customArticles.findIndex(a => a.id === article.id);
         if (custIndex >= 0) {
             customArticles[custIndex] = article;
@@ -587,38 +545,7 @@ function initApp() {
         renderReaderMessages(article);
     }
 
-    function showListView() {
-        if (readerView) readerView.classList.remove('active');
-        if (listView) listView.classList.active;
-        if (listView) listView.classList.add('active');
-        if (heroBanner) heroBanner.style.display = 'block';
-    }
-
-    // Font Controls
-    if (fontDecBtn) {
-        fontDecBtn.onclick = () => {
-            if (readerFontSize > 13) {
-                readerFontSize -= 1;
-                if (readerContent) readerContent.style.fontSize = `${readerFontSize}px`;
-            }
-        };
-    }
-    if (fontIncBtn) {
-        fontIncBtn.onclick = () => {
-            if (readerFontSize < 24) {
-                readerFontSize += 1;
-                if (readerContent) readerContent.style.fontSize = `${readerFontSize}px`;
-            }
-        };
-    }
-    if (fontResetBtn) {
-        fontResetBtn.onclick = () => {
-            readerFontSize = 16;
-            if (readerContent) readerContent.style.fontSize = '16px';
-        };
-    }
-
-    // 7. Image Paste & Upload Handler with Auto Compression (~100KB) (Screenshot 3)
+    // Image Upload & Paste Handler (~100KB Auto Compression)
     function compressImageFile(file, maxWidth = 1200, quality = 0.75, callback) {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -671,7 +598,7 @@ function initApp() {
         });
     }
 
-    // Paste image from Clipboard
+    // Paste image Ctrl+V
     if (inlineMsgTextarea) {
         inlineMsgTextarea.onpaste = (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -687,7 +614,7 @@ function initApp() {
         };
     }
 
-    // File input image upload
+    // File input selection
     if (msgImageFileInput) {
         msgImageFileInput.onchange = (e) => {
             const files = e.target.files;
@@ -702,7 +629,7 @@ function initApp() {
         };
     }
 
-    // 8. Submit Inline Quick Add Message (Screenshot 3)
+    // Submit Inline Quick Add Message
     if (submitInlineMsgBtn) {
         submitInlineMsgBtn.onclick = () => {
             if (!currentArticleId) return;
@@ -710,16 +637,12 @@ function initApp() {
             if (!article) return;
 
             const text = inlineMsgTextarea ? inlineMsgTextarea.value.trim() : "";
-            const nickname = msgNicknameInput ? msgNicknameInput.value.trim() || 'DBC' : 'DBC';
 
             if (!text && pendingBase64Images.length === 0) {
                 alert("Vui lòng nhập nội dung luận giải hoặc đính kèm ảnh!");
                 return;
             }
 
-            localStorage.setItem('LAST_NICKNAME', nickname);
-
-            // Construct body with text & embedded image tags
             let newMsgBody = text;
             if (pendingBase64Images.length > 0) {
                 pendingBase64Images.forEach((imgDataUrl, idx) => {
@@ -728,14 +651,13 @@ function initApp() {
             }
 
             const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            const newMsgFormatted = `### **${nickname}** (\`${nowStr}\`)\n${newMsgBody}\n\n`;
+            const newMsgFormatted = `### **${currentUsername}** (\`${nowStr}\`)\n${newMsgBody}\n\n`;
 
             article.content = (article.content || '').trim() + '\n\n' + newMsgFormatted;
             
             const parsedMsgs = parseMessagesFromContent(article.content);
             article.msgCount = parsedMsgs.length;
 
-            // Save to customArticles
             let custIdx = customArticles.findIndex(a => a.id === article.id);
             if (custIdx >= 0) {
                 customArticles[custIdx] = article;
@@ -746,20 +668,19 @@ function initApp() {
 
             allArticles = getCombinedArticles();
 
-            // Clear inputs & preview
             if (inlineMsgTextarea) inlineMsgTextarea.value = '';
             pendingBase64Images = [];
             renderImagePreviews();
 
-            // Re-render reader messages view
             renderReaderMessages(article);
         };
     }
 
-    // 9. Add New Category Modal (Screenshot 4)
+    // Streamlined Category Modal & Topic Modal Workflow (Screenshot 3)
     if (addCategoryBtnSidebar) {
         addCategoryBtnSidebar.onclick = () => {
             if (categoryModal) categoryModal.classList.add('active');
+            if (newCategoryTitleInput) newCategoryTitleInput.focus();
         };
     }
     if (closeCategoryModalBtn) closeCategoryModalBtn.onclick = () => categoryModal.classList.remove('active');
@@ -776,167 +697,56 @@ function initApp() {
                 defaultCategories.push(newCat);
                 refreshCategories();
                 renderNavigation();
-                selectCategory(newCat);
             }
+            selectCategory(newCat);
             if (newCategoryTitleInput) newCategoryTitleInput.value = "";
             categoryModal.classList.remove('active');
         };
     }
 
-    // Header Category "+ Thêm Chủ Đề Mới" button (Screenshot 4)
-    if (addChannelBtnCategory) {
-        addChannelBtnCategory.onclick = () => {
-            openAddModal();
-        };
-    }
-
-    // 10. Topic Add/Edit Modal Submission
-    function openAddModal() {
+    // "➕ Thêm Chủ Đề Mới" Button Workflow
+    function openTopicModal() {
         renderNavigation();
-        if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết / Chủ Đề Mới";
-        if (editArticleId) editArticleId.value = "";
-        
         let targetCat = categories[0] || "";
         if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
             targetCat = activeCategory;
         }
 
-        if (formCategorySelect) formCategorySelect.value = targetCat;
-        if (formNewCategoryInput) {
-            formNewCategoryInput.style.display = 'none';
-            formNewCategoryInput.value = "";
+        if (topicCategorySelect) topicCategorySelect.value = targetCat;
+        if (newTopicTitleInput) {
+            newTopicTitleInput.value = "";
+            newTopicTitleInput.focus();
         }
-
-        refreshTitleDropdown(targetCat);
-
-        if (formTitleInput) formTitleInput.value = "";
-        if (formContent) formContent.value = "";
-        if (formAuthorInput) formAuthorInput.value = localStorage.getItem('LAST_NICKNAME') || 'DBC';
-        if (articleModal) articleModal.classList.add('active');
+        if (topicModal) topicModal.classList.add('active');
     }
 
-    function openEditModal() {
-        if (!currentArticleId) return;
-        const article = allArticles.find(a => a.id === currentArticleId);
-        if (!article) return;
+    if (addChannelBtnCategory) addChannelBtnCategory.onclick = openTopicModal;
+    if (navAddTopicBtn) navAddTopicBtn.onclick = openTopicModal;
 
-        renderNavigation();
-        if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề / Kênh";
-        if (editArticleId) editArticleId.value = article.id;
-        
-        if (formCategorySelect) {
-            if (categories.includes(article.category)) {
-                formCategorySelect.value = article.category;
-                if (formNewCategoryInput) formNewCategoryInput.style.display = 'none';
-            } else {
-                formCategorySelect.value = '__CREATE_NEW__';
-                if (formNewCategoryInput) {
-                    formNewCategoryInput.style.display = 'block';
-                    formNewCategoryInput.value = article.category;
-                }
-            }
-        }
+    if (closeTopicModalBtn) closeTopicModalBtn.onclick = () => topicModal.classList.remove('active');
+    if (cancelTopicModalBtn) cancelTopicModalBtn.onclick = () => topicModal.classList.remove('active');
+    if (topicModalBackdrop) topicModalBackdrop.onclick = () => topicModal.classList.remove('active');
 
-        refreshTitleDropdown(article.category);
-        if (formTitleSelect) {
-            formTitleSelect.value = article.title;
-            if (formTitleSelect.value !== article.title) {
-                formTitleSelect.value = '__CREATE_NEW_TITLE__';
-                if (formTitleInput) {
-                    formTitleInput.style.display = 'block';
-                    formTitleInput.value = article.title;
-                }
-            } else {
-                if (formTitleInput) formTitleInput.style.display = 'none';
-            }
-        }
-        
-        if (formContent) formContent.value = article.content;
-        if (articleModal) articleModal.classList.add('active');
-    }
-
-    function closeModal() {
-        if (articleModal) articleModal.classList.remove('active');
-    }
-
-    if (articleForm) {
-        articleForm.onsubmit = (e) => {
+    // Topic Form Submission -> Creates topic & AUTOMATICALLY NAVIGATES INSIDE!
+    if (topicForm) {
+        topicForm.onsubmit = (e) => {
             e.preventDefault();
-            const id = editArticleId ? editArticleId.value : "";
-            
-            let cat = "";
-            if (formCategorySelect) {
-                if (formCategorySelect.value === '__CREATE_NEW__') {
-                    cat = formNewCategoryInput ? formNewCategoryInput.value.trim() : "";
-                } else {
-                    cat = formCategorySelect.value.trim();
-                }
-            }
+            const cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
+            const title = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
 
-            let title = "";
-            if (formTitleSelect) {
-                if (formTitleSelect.value === '__CREATE_NEW_TITLE__') {
-                    title = formTitleInput ? formTitleInput.value.trim() : "";
-                } else {
-                    title = formTitleSelect.value.trim();
-                }
-            }
-
-            const author = formAuthorInput ? formAuthorInput.value.trim() || 'DBC' : 'DBC';
-            const contentText = formContent ? formContent.value.trim() : "";
-
-            if (!cat || !title || !contentText) {
-                alert("Vui lòng điền đầy đủ Chuyên mục, Tiêu đề và Nội dung!");
+            if (!cat || !title) {
+                alert("Vui lòng nhập Tên Chủ Đề / Kênh!");
                 return;
             }
 
-            localStorage.setItem('LAST_NICKNAME', author);
-
-            // Check if an existing article with exact same category & title exists
             let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
+            let targetId = null;
 
-            if (id) {
-                // Editing specific article
-                let index = customArticles.findIndex(a => a.id === id);
-                let targetArt = allArticles.find(a => a.id === id);
-                
-                const updatedArt = {
-                    ...targetArt,
-                    id: id,
-                    category: cat,
-                    title: title,
-                    channel: title,
-                    content: contentText,
-                    preview: contentText.substring(0, 150)
-                };
-
-                if (index >= 0) {
-                    customArticles[index] = updatedArt;
-                } else {
-                    customArticles.push(updatedArt);
-                }
-                currentArticleId = id;
-            } else if (existingArticle) {
-                // Append message to existing article channel (Screenshot 1 solution!)
-                const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                const newMsgFormatted = `### **${author}** (\`${nowStr}\`)\n${contentText}\n\n`;
-
-                existingArticle.content = (existingArticle.content || '').trim() + '\n\n' + newMsgFormatted;
-                const parsedMsgs = parseMessagesFromContent(existingArticle.content);
-                existingArticle.msgCount = parsedMsgs.length;
-
-                let custIdx = customArticles.findIndex(a => a.id === existingArticle.id);
-                if (custIdx >= 0) {
-                    customArticles[custIdx] = existingArticle;
-                } else {
-                    customArticles.push(existingArticle);
-                }
-                currentArticleId = existingArticle.id;
+            if (existingArticle) {
+                targetId = existingArticle.id;
             } else {
-                // Create new article topic
                 const newId = `custom_${Date.now()}`;
-                const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-                const formattedContent = `# ${cat} / #${title}\n\n### **${author}** (\`${nowStr}\`)\n${contentText}\n`;
+                const formattedContent = `# ${cat} / #${title}\n\n`;
 
                 const newArt = {
                     id: newId,
@@ -944,28 +754,26 @@ function initApp() {
                     channel: title,
                     title: title,
                     isThread: false,
-                    msgCount: 1,
-                    preview: contentText.substring(0, 150),
+                    msgCount: 0,
+                    preview: "Bấm để thêm nội dung luận giải...",
                     content: formattedContent
                 };
                 customArticles.push(newArt);
-                currentArticleId = newId;
+                targetId = newId;
+
+                try {
+                    localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+                } catch (err) {}
             }
 
-            try {
-                localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-            } catch (err) {
-                console.error('Cannot save to localStorage:', err);
-            }
-            
             allArticles = getCombinedArticles();
             refreshCategories();
-            renderNavigation();
             selectCategory(cat);
-            closeModal();
+            if (topicModal) topicModal.classList.remove('active');
 
-            if (currentArticleId) {
-                openReaderView(currentArticleId);
+            // AUTOMATICALLY OPEN READER VIEW TO TYPE CONTENT!
+            if (targetId) {
+                openReaderView(targetId);
             }
         };
     }
@@ -1025,7 +833,7 @@ function initApp() {
         };
     }
 
-    // Mobile Drawer & Navigation Controls
+    // Mobile Drawer Controls
     function openMobileSidebar() {
         if (appSidebar) appSidebar.classList.add('open');
         if (sidebarOverlay) sidebarOverlay.classList.add('active');
@@ -1042,7 +850,6 @@ function initApp() {
     // Mobile Bottom Nav Buttons
     if (navHomeBtn) navHomeBtn.onclick = () => selectCategory('ALL');
     if (navCategoriesBtn) navCategoriesBtn.onclick = openMobileSidebar;
-    if (navAddBtn) navAddBtn.onclick = openAddModal;
     if (navSearchFocusBtn) navSearchFocusBtn.onclick = () => {
         showListView();
         if (searchInput) searchInput.focus();
@@ -1070,11 +877,6 @@ function initApp() {
     }
 
     if (backToListBtn) backToListBtn.onclick = showListView;
-    if (addArticleBtn) addArticleBtn.onclick = openAddModal;
-    if (editArticleBtn) editArticleBtn.onclick = openEditModal;
-    if (closeModalBtn) closeModalBtn.onclick = closeModal;
-    if (cancelModalBtn) cancelModalBtn.onclick = closeModal;
-    if (modalBackdrop) modalBackdrop.onclick = closeModal;
 
     // Initial Render Execution
     renderNavigation();
@@ -1082,7 +884,7 @@ function initApp() {
     console.log("App initialization completed. Articles loaded:", allArticles.length);
 }
 
-// Ensure execution regardless of DOMReady event timing
+// Ensure execution
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
     setTimeout(initApp, 1);
 } else {

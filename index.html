@@ -33,10 +33,6 @@
                 <button id="themeToggleBtn" class="icon-btn" title="Chuyển chế độ Sáng / Tối">
                     <span class="theme-icon">🌙</span>
                 </button>
-                <button id="addArticleBtn" class="btn btn-primary">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                    <span>Thêm bài mới</span>
-                </button>
                 <button id="exportBackupBtn" class="btn btn-secondary" title="Sao lưu dữ liệu">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                 </button>
@@ -71,11 +67,11 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="author-card">
-                    <div class="author-avatar">✨</div>
+                <div class="author-card" id="userProfileCard" title="Nhấp để đổi Tên người viết / Username">
+                    <div class="author-avatar">👤</div>
                     <div class="author-info">
-                        <strong>Tủ Sách Cá Nhân</strong>
-                        <span id="statSidebarArticles">Đã lưu 203 bài</span>
+                        <strong id="displayUsername">Tác giả: DBC</strong>
+                        <span id="statSidebarArticles">Đã lưu 203 chủ đề</span>
                     </div>
                 </div>
             </div>
@@ -120,7 +116,7 @@
                     </div>
 
                     <div class="header-right-actions">
-                        <button id="addChannelBtnCategory" class="btn btn-outline-sm" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
+                        <button id="addChannelBtnCategory" class="btn btn-primary" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
                             ➕ Thêm Chủ Đề Mới
                         </button>
 
@@ -142,8 +138,8 @@
                 <!-- Empty State -->
                 <div id="noResults" class="empty-card" style="display: none;">
                     <div class="empty-icon">🔍</div>
-                    <h3>Không tìm thấy nội dung phù hợp</h3>
-                    <p>Hãy thử tìm lại với từ khóa khác hoặc chuyển sang chuyên mục khác.</p>
+                    <h3>Không tìm thấy chủ đề nào</h3>
+                    <p>Hãy bấm nút <b>"➕ Thêm Chủ Đề Mới"</b> ở trên để tạo chủ đề/kênh đầu tiên cho chuyên mục này.</p>
                 </div>
             </section>
 
@@ -162,8 +158,7 @@
                     </div>
 
                     <div class="reader-actions">
-                        <button id="editArticleBtn" class="btn btn-outline-sm">✏️ Sửa Chủ Đề</button>
-                        <button id="deleteArticleBtn" class="btn btn-danger-sm">🗑️ Xóa Chủ Đề</button>
+                        <button id="deleteArticleBtn" class="btn btn-danger-sm">🗑️ Xóa Chủ Đề Này</button>
                         <button id="downloadMdBtn" class="btn btn-outline-sm">📥 Tải .md</button>
                     </div>
                 </div>
@@ -179,42 +174,36 @@
 
                     <div class="reader-sep"></div>
 
-                    <!-- Rendered Messages & Markdown Content -->
+                    <!-- Rendered Messages & In-place Inline Edit -->
                     <div class="reader-messages-list" id="readerContent">
-                        <!-- Message blocks with per-message Edit/Delete buttons -->
+                        <!-- Messages list -->
                     </div>
 
                     <!-- Inline Quick Add Message Box (Screenshot 3) -->
                     <div class="inline-add-msg-box" id="inlineAddMsgBox">
                         <div class="msg-box-header">
                             <h4>💬 Thêm Nội Dung / Luận Giải Mới</h4>
-                            <span class="img-hint-tag">📷 Hỗ trợ dán ảnh (Ctrl+V) hoặc đính kèm ảnh</span>
+                            <span class="author-badge-active" id="activeAuthorTag">👤 Người viết: DBC</span>
                         </div>
 
                         <div class="msg-form">
-                            <div class="msg-form-row">
-                                <div class="nickname-field">
-                                    <label for="msgNicknameInput">Nickname / Tên tác giả:</label>
-                                    <input type="text" id="msgNicknameInput" value="DBC" placeholder="Nhập tên người viết (Vd: DBC)...">
-                                </div>
-                                <div class="img-upload-field">
-                                    <label for="msgImageFileInput">Đính kèm ảnh:</label>
-                                    <input type="file" id="msgImageFileInput" accept="image/*">
-                                </div>
-                            </div>
-
                             <div class="msg-textarea-wrapper">
-                                <textarea id="inlineMsgTextarea" rows="4" placeholder="Nhập nội dung luận giải mới... (Bạn có thể dán ảnh trực tiếp từ bộ nhớ tạm Ctrl+V)"></textarea>
+                                <textarea id="inlineMsgTextarea" rows="4" placeholder="Nhập nội dung luận giải mới... (Hỗ trợ dán ảnh trực tiếp Ctrl+V hoặc chọn ảnh đính kèm)"></textarea>
                             </div>
 
-                            <!-- Image Preview Thumbnails -->
-                            <div class="image-preview-container" id="imagePreviewContainer" style="display: none;"></div>
-
-                            <div class="msg-form-footer">
+                            <div class="msg-form-actions-row">
+                                <div class="file-upload-btn-wrapper">
+                                    <label for="msgImageFileInput" class="btn btn-outline-sm">📷 Đính kèm ảnh</label>
+                                    <input type="file" id="msgImageFileInput" accept="image/*" style="display: none;">
+                                </div>
+                                
                                 <button type="button" id="submitInlineMsgBtn" class="btn btn-primary">
                                     <span>➕ Đăng Luận Giải</span>
                                 </button>
                             </div>
+
+                            <!-- Image Preview Thumbnails -->
+                            <div class="image-preview-container" id="imagePreviewContainer" style="display: none;"></div>
                         </div>
                     </div>
 
@@ -234,9 +223,9 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <span>Chuyên mục</span>
         </button>
-        <button id="navAddBtn" class="nav-item nav-item-add">
+        <button id="navAddTopicBtn" class="nav-item nav-item-add">
             <div class="add-icon-circle">+</div>
-            <span>Đăng bài</span>
+            <span>Tạo Chủ Đề</span>
         </button>
         <button id="navSearchFocusBtn" class="nav-item">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
@@ -244,56 +233,7 @@
         </button>
     </nav>
 
-    <!-- Modal: Add / Edit Article (Topic Level) -->
-    <div class="modal" id="articleModal">
-        <div class="modal-backdrop" id="modalBackdrop"></div>
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="modalTitle">Thêm Bài Viết / Chủ Đề Mới</h3>
-                <button class="icon-btn" id="closeModalBtn">&times;</button>
-            </div>
-
-            <form id="articleForm" class="modal-body">
-                <input type="hidden" id="editArticleId">
-
-                <!-- 1. Select / Create Category -->
-                <div class="form-field">
-                    <label for="formCategorySelect">Chọn Chuyên mục:</label>
-                    <select id="formCategorySelect" class="form-select">
-                        <!-- Categories populated by JS -->
-                    </select>
-                    <input type="text" id="formNewCategoryInput" placeholder="Nhập tên chuyên mục mới..." style="display: none; margin-top: 8px;">
-                </div>
-
-                <!-- 2. Select / Create Title or Channel -->
-                <div class="form-field">
-                    <label for="formTitleSelect">Chọn Tên Chủ Đề / Kênh có sẵn (hoặc tạo mới):</label>
-                    <select id="formTitleSelect" class="form-select">
-                        <!-- Populated based on selected category -->
-                    </select>
-                    <input type="text" id="formTitleInput" placeholder="Nhập tên chủ đề / kênh mới..." style="display: none; margin-top: 8px;">
-                </div>
-
-                <!-- 3. Initial Message Author & Content -->
-                <div class="form-field">
-                    <label for="formAuthorInput">Tên người viết (Nickname):</label>
-                    <input type="text" id="formAuthorInput" value="DBC" placeholder="Nhập tên người viết (Vd: DBC)...">
-                </div>
-
-                <div class="form-field">
-                    <label for="formContent">Nội dung bài viết (Hỗ trợ Markdown & Dán ảnh):</label>
-                    <textarea id="formContent" rows="8" placeholder="Nhập nội dung văn bản (dùng #, ##, **, * hoặc định dạng danh sách)..." required></textarea>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" id="cancelModalBtn">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-primary">Lưu bài viết</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal: Add New Category Only -->
+    <!-- Modal 1: Add New Category -->
     <div class="modal" id="categoryModal">
         <div class="modal-backdrop" id="categoryModalBackdrop"></div>
         <div class="modal-card modal-sm">
@@ -309,6 +249,33 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelCategoryModalBtn">Hủy bỏ</button>
                     <button type="submit" class="btn btn-primary">Tạo Chuyên Mục</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Add New Topic / Channel (Screenshot 3 Workflow) -->
+    <div class="modal" id="topicModal">
+        <div class="modal-backdrop" id="topicModalBackdrop"></div>
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <h3>➕ Thêm Chủ Đề (Kênh) Mới</h3>
+                <button class="icon-btn" id="closeTopicModalBtn">&times;</button>
+            </div>
+            <form id="topicForm" class="modal-body">
+                <div class="form-field">
+                    <label for="topicCategorySelect">Chuyên Mục:</label>
+                    <select id="topicCategorySelect" class="form-select">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label for="newTopicTitleInput">Tên Chủ Đề / Kênh Mới:</label>
+                    <input type="text" id="newTopicTitleInput" placeholder="Vd: Luận gia đạo, Tuổi Dần Mộc..." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelTopicModalBtn">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary">Tạo Chủ Đề & Đăng Bài</button>
                 </div>
             </form>
         </div>

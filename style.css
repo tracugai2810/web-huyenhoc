@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - INTERACTIVE MESSAGES & IMAGE UPLOAD
+   PREMIUM LUXURY DESIGN SYSTEM - IN-PLACE EDITING & STREAMLINED CREATION
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -367,9 +367,14 @@ h1, h2, h3, h4 {
     background-color: var(--bg-input);
     padding: 10px 14px;
     border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.author-card:hover {
+    background-color: var(--primary-light);
 }
 .author-avatar { font-size: 20px; }
-.author-info strong { display: block; font-size: 13px; }
+.author-info strong { display: block; font-size: 13px; color: var(--primary-text); }
 .author-info span { font-size: 11px; color: var(--text-muted); }
 
 /* Main Area */
@@ -612,6 +617,16 @@ h1, h2, h3, h4 {
     overflow: hidden;
 }
 
+/* Empty Card */
+.empty-card {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: var(--bg-card);
+    border-radius: var(--radius-xl);
+    border: 2px dashed var(--border);
+}
+.empty-icon { font-size: 44px; margin-bottom: 12px; }
+
 /* Reader View */
 .reader-toolbar {
     display: flex;
@@ -697,7 +712,7 @@ h1, h2, h3, h4 {
     background-color: var(--border);
 }
 
-/* Individual Message Blocks inside Reader View (Screenshot 2) */
+/* Messages List inside Reader View */
 .reader-messages-list {
     display: flex;
     flex-direction: column;
@@ -769,6 +784,32 @@ h1, h2, h3, h4 {
     box-shadow: var(--shadow-sm);
 }
 
+/* In-place Live Inline Editor (Screenshot 1 solution) */
+.msg-inline-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.msg-inline-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.msg-inline-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 /* Inline Quick Add Message Box (Screenshot 3) */
 .inline-add-msg-box {
     margin-top: 24px;
@@ -793,47 +834,19 @@ h1, h2, h3, h4 {
     font-weight: 700;
     color: var(--primary);
 }
-.img-hint-tag {
+.author-badge-active {
     font-size: 12px;
-    color: var(--text-muted);
-    background: var(--bg-card);
-    padding: 3px 10px;
+    font-weight: 600;
+    color: var(--primary-text);
+    background: var(--primary-light);
+    padding: 4px 12px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--border);
 }
 
 .msg-form {
     display: flex;
     flex-direction: column;
     gap: 12px;
-}
-
-.msg-form-row {
-    display: flex;
-    gap: 14px;
-    flex-wrap: wrap;
-}
-
-.nickname-field, .img-upload-field {
-    flex: 1;
-    min-width: 200px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-.nickname-field label, .img-upload-field label {
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-secondary);
-}
-.nickname-field input, .img-upload-field input {
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    font-family: var(--font-sans);
-    font-size: 14px;
-    background-color: var(--bg-card);
-    color: var(--text-primary);
 }
 
 .msg-textarea-wrapper textarea {
@@ -851,6 +864,13 @@ h1, h2, h3, h4 {
     outline: none;
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+.msg-form-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 }
 
 .image-preview-container {
@@ -886,11 +906,6 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-.msg-form-footer {
-    display: flex;
-    justify-content: flex-end;
 }
 
 /* Mobile Bottom Navigation */
@@ -971,9 +986,7 @@ h1, h2, h3, h4 {
     flex-direction: column;
     max-height: 90vh;
 }
-.modal-sm {
-    max-width: 440px;
-}
+.modal-sm { max-width: 440px; }
 
 .modal-header {
     padding: 18px 22px;
