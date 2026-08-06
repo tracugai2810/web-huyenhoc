@@ -56,7 +56,10 @@
                 <div class="sidebar-title">
                     <span>📚 CHUYÊN MỤC</span>
                 </div>
-                <button id="closeSidebarBtn" class="icon-btn mobile-only">&times;</button>
+                <div class="sidebar-header-actions">
+                    <button id="addCategoryBtnSidebar" class="btn-icon-sm" title="Thêm Chuyên Mục Mới">➕</button>
+                    <button id="closeSidebarBtn" class="icon-btn mobile-only">&times;</button>
+                </div>
             </div>
 
             <div class="sidebar-search-box">
@@ -72,7 +75,7 @@
                     <div class="author-avatar">✨</div>
                     <div class="author-info">
                         <strong>Tủ Sách Cá Nhân</strong>
-                        <span>Đã lưu 203 bài viết</span>
+                        <span id="statSidebarArticles">Đã lưu 203 bài</span>
                     </div>
                 </div>
             </div>
@@ -90,9 +93,9 @@
                     <p class="hero-desc">Hệ thống bài viết, lá số nghiệm lý, tượng nghĩa sao và phong thủy được sắp xếp khoa học.</p>
                     
                     <div class="hero-stats">
-                        <div class="stat-pill"><strong id="statArticlesCount">203</strong> Bài viết</div>
+                        <div class="stat-pill"><strong id="statArticlesCount">203</strong> Chủ đề (Kênh)</div>
                         <div class="stat-pill"><strong id="statCategoryCount">9</strong> Chuyên mục</div>
-                        <div class="stat-pill"><strong>1,557</strong> Thảo luận</div>
+                        <div class="stat-pill"><strong>1,557</strong> Nội dung luận giải</div>
                     </div>
                 </div>
             </section>
@@ -112,15 +115,22 @@
             <section id="listView" class="view-panel active">
                 <div class="view-header">
                     <div class="header-left">
-                        <h2 id="currentCategoryTitle" class="section-title">Tất Cả Bài Viết</h2>
-                        <span class="badge-count" id="articleCountBadge">203 bài</span>
+                        <h2 id="currentCategoryTitle" class="section-title">Tất Cả Chủ Đề</h2>
+                        <span class="badge-count" id="articleCountBadge">203 chủ đề</span>
                     </div>
-                    <div class="view-sort">
-                        <select id="sortSelect">
-                            <option value="default">Sắp xếp mặc định</option>
-                            <option value="msgHigh">Nhiều tin nhắn nhất</option>
-                            <option value="titleAz">Tên từ A-Z</option>
-                        </select>
+
+                    <div class="header-right-actions">
+                        <button id="addChannelBtnCategory" class="btn btn-outline-sm" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
+                            ➕ Thêm Chủ Đề Mới
+                        </button>
+
+                        <div class="view-sort">
+                            <select id="sortSelect">
+                                <option value="default">Sắp xếp mặc định</option>
+                                <option value="msgHigh">Nhiều tin nhắn nhất</option>
+                                <option value="titleAz">Tên từ A-Z</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -129,7 +139,7 @@
                     <!-- Populated by JS -->
                 </div>
 
-                <!-- No Search Results Empty State -->
+                <!-- Empty State -->
                 <div id="noResults" class="empty-card" style="display: none;">
                     <div class="empty-icon">🔍</div>
                     <h3>Không tìm thấy nội dung phù hợp</h3>
@@ -137,7 +147,7 @@
                 </div>
             </section>
 
-            <!-- View 2: Article Reader View -->
+            <!-- View 2: Article Reader & Interactive Add Message View -->
             <section id="readerView" class="view-panel">
                 <div class="reader-toolbar">
                     <button id="backToListBtn" class="btn btn-back">
@@ -152,27 +162,62 @@
                     </div>
 
                     <div class="reader-actions">
-                        <button id="editArticleBtn" class="btn btn-outline-sm">✏️ Sửa</button>
-                        <button id="deleteArticleBtn" class="btn btn-danger-sm">🗑️ Xóa</button>
+                        <button id="editArticleBtn" class="btn btn-outline-sm">✏️ Sửa Chủ Đề</button>
+                        <button id="deleteArticleBtn" class="btn btn-danger-sm">🗑️ Xóa Chủ Đề</button>
                         <button id="downloadMdBtn" class="btn btn-outline-sm">📥 Tải .md</button>
                     </div>
                 </div>
 
                 <article class="reader-article-card">
                     <div class="reader-meta-tags">
-                        <span class="meta-cat" id="readerCategory">Danh mục</span>
+                        <span class="meta-cat" id="readerCategory">Chuyên mục</span>
                         <span class="meta-thread" id="readerThreadBadge" style="display: none;">Luồng thảo luận</span>
-                        <span class="meta-msgs" id="readerMsgCount">0 tin nhắn</span>
+                        <span class="meta-msgs" id="readerMsgCount">0 luận giải</span>
                     </div>
 
-                    <h1 class="reader-article-title" id="readerTitle">Tiêu đề bài viết</h1>
+                    <h1 class="reader-article-title" id="readerTitle">Tên Chủ Đề / Kênh</h1>
 
                     <div class="reader-sep"></div>
 
-                    <!-- Rendered Markdown Body -->
-                    <div class="reader-body markdown-body" id="readerContent">
-                        <!-- Body content -->
+                    <!-- Rendered Messages & Markdown Content -->
+                    <div class="reader-messages-list" id="readerContent">
+                        <!-- Message blocks with per-message Edit/Delete buttons -->
                     </div>
+
+                    <!-- Inline Quick Add Message Box (Screenshot 3) -->
+                    <div class="inline-add-msg-box" id="inlineAddMsgBox">
+                        <div class="msg-box-header">
+                            <h4>💬 Thêm Nội Dung / Luận Giải Mới</h4>
+                            <span class="img-hint-tag">📷 Hỗ trợ dán ảnh (Ctrl+V) hoặc đính kèm ảnh</span>
+                        </div>
+
+                        <div class="msg-form">
+                            <div class="msg-form-row">
+                                <div class="nickname-field">
+                                    <label for="msgNicknameInput">Nickname / Tên tác giả:</label>
+                                    <input type="text" id="msgNicknameInput" value="DBC" placeholder="Nhập tên người viết (Vd: DBC)...">
+                                </div>
+                                <div class="img-upload-field">
+                                    <label for="msgImageFileInput">Đính kèm ảnh:</label>
+                                    <input type="file" id="msgImageFileInput" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="msg-textarea-wrapper">
+                                <textarea id="inlineMsgTextarea" rows="4" placeholder="Nhập nội dung luận giải mới... (Bạn có thể dán ảnh trực tiếp từ bộ nhớ tạm Ctrl+V)"></textarea>
+                            </div>
+
+                            <!-- Image Preview Thumbnails -->
+                            <div class="image-preview-container" id="imagePreviewContainer" style="display: none;"></div>
+
+                            <div class="msg-form-footer">
+                                <button type="button" id="submitInlineMsgBtn" class="btn btn-primary">
+                                    <span>➕ Đăng Luận Giải</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                 </article>
             </section>
 
@@ -199,12 +244,12 @@
         </button>
     </nav>
 
-    <!-- Modal: Add / Edit Article -->
+    <!-- Modal: Add / Edit Article (Topic Level) -->
     <div class="modal" id="articleModal">
         <div class="modal-backdrop" id="modalBackdrop"></div>
         <div class="modal-card">
             <div class="modal-header">
-                <h3 id="modalTitle">Thêm Bài Viết Mới</h3>
+                <h3 id="modalTitle">Thêm Bài Viết / Chủ Đề Mới</h3>
                 <button class="icon-btn" id="closeModalBtn">&times;</button>
             </div>
 
@@ -222,22 +267,48 @@
 
                 <!-- 2. Select / Create Title or Channel -->
                 <div class="form-field">
-                    <label for="formTitleSelect">Chọn Tên Kênh / Bài Viết có sẵn (hoặc tạo mới):</label>
+                    <label for="formTitleSelect">Chọn Tên Chủ Đề / Kênh có sẵn (hoặc tạo mới):</label>
                     <select id="formTitleSelect" class="form-select">
                         <!-- Populated based on selected category -->
                     </select>
-                    <input type="text" id="formTitleInput" placeholder="Nhập tên kênh / tiêu đề bài viết mới..." style="display: none; margin-top: 8px;">
+                    <input type="text" id="formTitleInput" placeholder="Nhập tên chủ đề / kênh mới..." style="display: none; margin-top: 8px;">
                 </div>
 
-                <!-- 3. Markdown Content -->
+                <!-- 3. Initial Message Author & Content -->
                 <div class="form-field">
-                    <label for="formContent">Nội dung bài viết (Hỗ trợ Markdown):</label>
-                    <textarea id="formContent" rows="10" placeholder="Nhập nội dung văn bản (dùng #, ##, **, * hoặc định dạng danh sách)..." required></textarea>
+                    <label for="formAuthorInput">Tên người viết (Nickname):</label>
+                    <input type="text" id="formAuthorInput" value="DBC" placeholder="Nhập tên người viết (Vd: DBC)...">
+                </div>
+
+                <div class="form-field">
+                    <label for="formContent">Nội dung bài viết (Hỗ trợ Markdown & Dán ảnh):</label>
+                    <textarea id="formContent" rows="8" placeholder="Nhập nội dung văn bản (dùng #, ##, **, * hoặc định dạng danh sách)..." required></textarea>
                 </div>
 
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelModalBtn">Hủy bỏ</button>
                     <button type="submit" class="btn btn-primary">Lưu bài viết</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add New Category Only -->
+    <div class="modal" id="categoryModal">
+        <div class="modal-backdrop" id="categoryModalBackdrop"></div>
+        <div class="modal-card modal-sm">
+            <div class="modal-header">
+                <h3>➕ Thêm Chuyên Mục Mới</h3>
+                <button class="icon-btn" id="closeCategoryModalBtn">&times;</button>
+            </div>
+            <form id="categoryForm" class="modal-body">
+                <div class="form-field">
+                    <label for="newCategoryTitleInput">Tên Chuyên Mục Mới:</label>
+                    <input type="text" id="newCategoryTitleInput" placeholder="Vd: Kỳ Môn Độn Giáp, Tử Vi Đẩu Số..." required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelCategoryModalBtn">Hủy bỏ</button>
+                    <button type="submit" class="btn btn-primary">Tạo Chuyên Mục</button>
                 </div>
             </form>
         </div>

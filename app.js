@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - CATEGORY & TITLE DROPDOWNS
+// KNOWLEDGE BASE APPLICATION LOGIC - FULL INTERACTIVE EDITION
 // ==========================================================================
 
 function initApp() {
@@ -13,9 +13,11 @@ function initApp() {
     const sidebarOverlay = document.getElementById('sidebarOverlay');
     const sidebarCategoryList = document.getElementById('sidebarCategoryList');
     const sidebarFilterInput = document.getElementById('sidebarFilterInput');
+    const addCategoryBtnSidebar = document.getElementById('addCategoryBtnSidebar');
     
     const statArticlesCount = document.getElementById('statArticlesCount');
     const statCategoryCount = document.getElementById('statCategoryCount');
+    const statSidebarArticles = document.getElementById('statSidebarArticles');
     
     const searchInput = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
@@ -29,6 +31,7 @@ function initApp() {
     const articleCountBadge = document.getElementById('articleCountBadge');
     const articleGrid = document.getElementById('articleGrid');
     const noResults = document.getElementById('noResults');
+    const addChannelBtnCategory = document.getElementById('addChannelBtnCategory');
 
     const backToListBtn = document.getElementById('backToListBtn');
     const fontDecBtn = document.getElementById('fontDecBtn');
@@ -48,6 +51,14 @@ function initApp() {
     const addArticleBtn = document.getElementById('addArticleBtn');
     const exportBackupBtn = document.getElementById('exportBackupBtn');
     
+    // Inline Add Message Box Elements (Screenshot 3)
+    const inlineMsgTextarea = document.getElementById('inlineMsgTextarea');
+    const msgNicknameInput = document.getElementById('msgNicknameInput');
+    const msgImageFileInput = document.getElementById('msgImageFileInput');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const submitInlineMsgBtn = document.getElementById('submitInlineMsgBtn');
+
+    // Modals
     const articleModal = document.getElementById('articleModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const cancelModalBtn = document.getElementById('cancelModalBtn');
@@ -60,13 +71,24 @@ function initApp() {
     const formNewCategoryInput = document.getElementById('formNewCategoryInput');
     const formTitleSelect = document.getElementById('formTitleSelect');
     const formTitleInput = document.getElementById('formTitleInput');
+    const formAuthorInput = document.getElementById('formAuthorInput');
     const formContent = document.getElementById('formContent');
+
+    const categoryModal = document.getElementById('categoryModal');
+    const closeCategoryModalBtn = document.getElementById('closeCategoryModalBtn');
+    const cancelCategoryModalBtn = document.getElementById('cancelCategoryModalBtn');
+    const categoryModalBackdrop = document.getElementById('categoryModalBackdrop');
+    const categoryForm = document.getElementById('categoryForm');
+    const newCategoryTitleInput = document.getElementById('newCategoryTitleInput');
 
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navCategoriesBtn = document.getElementById('navCategoriesBtn');
     const navAddBtn = document.getElementById('navAddBtn');
     const navSearchFocusBtn = document.getElementById('navSearchFocusBtn');
+
+    // Image Upload Buffer
+    let pendingBase64Images = [];
 
     // 1. Theme Management (Light / Dark)
     function updateThemeIcon(theme) {
@@ -105,6 +127,11 @@ function initApp() {
         deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
     } catch (e) {
         console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
+    }
+
+    // Restore last used Nickname
+    if (msgNicknameInput) {
+        msgNicknameInput.value = localStorage.getItem('LAST_NICKNAME') || 'DBC';
     }
 
     function getCombinedArticles() {
@@ -195,6 +222,7 @@ function initApp() {
         // Hero Stats
         if (statArticlesCount) statArticlesCount.textContent = allArticles.length;
         if (statCategoryCount) statCategoryCount.textContent = categories.length;
+        if (statSidebarArticles) statSidebarArticles.textContent = `Đã lưu ${allArticles.length} chủ đề`;
     }
 
     function selectCategory(cat) {
@@ -211,7 +239,6 @@ function initApp() {
         };
     }
 
-    // Populate Channel / Title dropdown based on selected category
     function refreshTitleDropdown(selectedCat) {
         if (!formTitleSelect) return;
         formTitleSelect.innerHTML = '';
@@ -221,10 +248,9 @@ function initApp() {
             catArticles = allArticles.filter(a => a.category === selectedCat);
         }
 
-        // Add option to type custom title
         const createOpt = document.createElement('option');
         createOpt.value = '__CREATE_NEW_TITLE__';
-        createOpt.textContent = '➕ Tạo tiêu đề / kênh mới...';
+        createOpt.textContent = '➕ Tạo tên chủ đề / kênh mới...';
         formTitleSelect.appendChild(createOpt);
 
         catArticles.forEach(art => {
@@ -234,7 +260,6 @@ function initApp() {
             formTitleSelect.appendChild(opt);
         });
 
-        // Default to create new title if none exist
         if (catArticles.length === 0) {
             formTitleSelect.value = '__CREATE_NEW_TITLE__';
             if (formTitleInput) {
@@ -242,7 +267,6 @@ function initApp() {
                 formTitleInput.required = true;
             }
         } else {
-            // Select first existing title by default or allow creation
             formTitleSelect.value = catArticles[0].title;
             if (formTitleInput) {
                 formTitleInput.style.display = 'none';
@@ -251,7 +275,6 @@ function initApp() {
         }
     }
 
-    // Category Select Dropdown Listener
     if (formCategorySelect) {
         formCategorySelect.onchange = () => {
             const val = formCategorySelect.value;
@@ -270,7 +293,6 @@ function initApp() {
         };
     }
 
-    // Title Select Dropdown Listener
     if (formTitleSelect) {
         formTitleSelect.onchange = () => {
             const val = formTitleSelect.value;
@@ -296,12 +318,10 @@ function initApp() {
         
         let filtered = allArticles;
 
-        // Category Filter
         if (activeCategory !== 'ALL') {
             filtered = filtered.filter(a => a.category === activeCategory);
         }
 
-        // Search Query Filter
         if (searchQuery.trim() !== '') {
             const q = searchQuery.toLowerCase().trim();
             filtered = filtered.filter(a => {
@@ -312,7 +332,6 @@ function initApp() {
             });
         }
 
-        // Sort Options
         if (sortMode === 'msgHigh') {
             filtered.sort((a, b) => (b.msgCount || 0) - (a.msgCount || 0));
         } else if (sortMode === 'titleAz') {
@@ -320,10 +339,10 @@ function initApp() {
         }
 
         if (currentCategoryTitle) {
-            currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Bài Viết' : `Chuyên mục: ${activeCategory}`;
+            currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Chủ Đề' : `Chuyên mục: ${activeCategory}`;
         }
         if (articleCountBadge) {
-            articleCountBadge.textContent = `${filtered.length} bài`;
+            articleCountBadge.textContent = `${filtered.length} chủ đề`;
         }
 
         articleGrid.innerHTML = '';
@@ -333,8 +352,8 @@ function initApp() {
                 noResults.style.display = 'block';
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
-                    <h3>Không tìm thấy nội dung phù hợp</h3>
-                    <p>Hãy thử tìm lại với từ khóa khác hoặc chuyển sang chuyên mục khác.</p>
+                    <h3>Không tìm thấy chủ đề nào</h3>
+                    <p>Hãy thử chọn chuyên mục khác hoặc thêm chủ đề mới vào chuyên mục này.</p>
                 `;
             }
             return;
@@ -345,7 +364,7 @@ function initApp() {
             const card = document.createElement('div');
             card.className = 'article-card';
             
-            let displayTitle = escapeHtml(art.title || 'Bài viết');
+            let displayTitle = escapeHtml(art.title || 'Chủ đề');
             let displaySnippet = escapeHtml(art.preview || "Nội dung bài viết...");
 
             if (searchQuery) {
@@ -357,7 +376,7 @@ function initApp() {
                 <div class="card-tags">
                     <span class="tag-cat">${escapeHtml(art.category)}</span>
                     ${art.isThread ? '<span class="tag-thread">Thread</span>' : ''}
-                    <span class="tag-msg">💬 ${art.msgCount || 0} tin nhắn</span>
+                    <span class="tag-msg">💬 ${art.msgCount || 1} luận giải</span>
                 </div>
                 <h3 class="card-heading">${displayTitle}</h3>
                 <p class="card-snippet">${displaySnippet}</p>
@@ -385,7 +404,66 @@ function initApp() {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // 5. Reader View & Controls
+    // 5. Parse Markdown Content into Individual Messages (Screenshot 2)
+    function parseMessagesFromContent(rawMarkdown) {
+        if (!rawMarkdown) return [];
+
+        // Split messages by '### **[Author]** (`[Timestamp]`)' or '### **[Author]** ([Timestamp])'
+        const msgRegex = /###\s*\*\*([^*]+)\*\*\s*\(([^)]+)\)/g;
+
+        let matches = [];
+        let match;
+        while ((match = msgRegex.exec(rawMarkdown)) !== null) {
+            matches.push({
+                index: match.index,
+                fullMatch: match[0],
+                author: match[1].trim(),
+                timestamp: match[2].trim()
+            });
+        }
+
+        if (matches.length === 0) {
+            // Single message fallback
+            return [{
+                id: 0,
+                author: 'Tác giả',
+                timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                bodyText: rawMarkdown
+            }];
+        }
+
+        let messagesList = [];
+        for (let i = 0; i < matches.length; i++) {
+            const start = matches[i].index + matches[i].fullMatch.length;
+            const end = (i + 1 < matches.length) ? matches[i + 1].index : rawMarkdown.length;
+            const body = rawMarkdown.substring(start, end).trim();
+
+            messagesList.push({
+                id: i,
+                author: matches[i].author,
+                timestamp: matches[i].timestamp,
+                bodyText: body
+            });
+        }
+
+        return messagesList;
+    }
+
+    // Re-build Markdown string from messages list
+    function buildMarkdownFromMessages(headerPart, messagesList) {
+        let lines = [];
+        if (headerPart) {
+            lines.append(headerPart.trim());
+        }
+        messagesList.forEach(m => {
+            lines.push(`### **${m.author}** (\`${m.timestamp}\`)`);
+            lines.push(m.bodyText);
+            lines.push('');
+        });
+        return lines.join('\n\n');
+    }
+
+    // 6. Reader View & Interactive Message Rendering
     function openReaderView(id) {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -393,8 +471,7 @@ function initApp() {
         currentArticleId = id;
         if (readerCategory) readerCategory.textContent = article.category;
         if (readerTitle) readerTitle.textContent = article.title;
-        if (readerMsgCount) readerMsgCount.textContent = `💬 ${article.msgCount || 0} tin nhắn`;
-
+        
         if (readerThreadBadge) {
             if (article.isThread) {
                 readerThreadBadge.style.display = 'inline-block';
@@ -404,29 +481,115 @@ function initApp() {
             }
         }
 
-        let htmlContent = "";
-        try {
-            if (window.marked && typeof window.marked.parse === 'function') {
-                htmlContent = window.marked.parse(article.content || '');
-            } else {
-                htmlContent = escapeHtml(article.content || '').replace(/\n/g, '<br>');
-            }
-        } catch (err) {
-            console.error('Markdown parse error:', err);
-            htmlContent = escapeHtml(article.content || '').replace(/\n/g, '<br>');
-        }
+        renderReaderMessages(article);
 
-        if (readerContent) readerContent.innerHTML = htmlContent;
-
-        // Switch to reader panel
         if (heroBanner) heroBanner.style.display = 'none';
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function renderReaderMessages(article) {
+        const parsedMsgs = parseMessagesFromContent(article.content || '');
+        if (readerMsgCount) readerMsgCount.textContent = `💬 ${parsedMsgs.length} luận giải`;
+
+        if (!readerContent) return;
+        readerContent.innerHTML = '';
+
+        parsedMsgs.forEach((msg, idx) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'msg-block';
+
+            let renderedBody = "";
+            try {
+                if (window.marked && typeof window.marked.parse === 'function') {
+                    renderedBody = window.marked.parse(msg.bodyText);
+                } else {
+                    renderedBody = escapeHtml(msg.bodyText).replace(/\n/g, '<br>');
+                }
+            } catch (err) {
+                renderedBody = escapeHtml(msg.bodyText).replace(/\n/g, '<br>');
+            }
+
+            msgDiv.innerHTML = `
+                <div class="msg-block-header">
+                    <div class="msg-author-tag">
+                        <span class="msg-author-name">${escapeHtml(msg.author)}</span>
+                        <span class="msg-timestamp">${escapeHtml(msg.timestamp)}</span>
+                    </div>
+                    <div class="msg-actions">
+                        <button class="btn-icon-sm edit-msg-btn" title="Sửa nội dung này">✏️ Sửa</button>
+                        <button class="btn-icon-sm delete-msg-btn" style="color:#EF4444;" title="Xóa nội dung này">🗑️ Xóa</button>
+                    </div>
+                </div>
+                <div class="msg-body markdown-body">${renderedBody}</div>
+            `;
+
+            // Edit single message
+            const editBtn = msgDiv.querySelector('.edit-msg-btn');
+            if (editBtn) {
+                editBtn.onclick = () => {
+                    const newBody = prompt("Sửa nội dung luận giải:", msg.bodyText);
+                    if (newBody !== null && newBody.trim() !== "") {
+                        parsedMsgs[idx].bodyText = newBody.trim();
+                        saveUpdatedMessagesToArticle(article, parsedMsgs);
+                    }
+                };
+            }
+
+            // Delete single message
+            const deleteBtn = msgDiv.querySelector('.delete-msg-btn');
+            if (deleteBtn) {
+                deleteBtn.onclick = () => {
+                    if (confirm("Bạn có chắc chắn muốn xóa đoạn luận giải này?")) {
+                        parsedMsgs.splice(idx, 1);
+                        saveUpdatedMessagesToArticle(article, parsedMsgs);
+                    }
+                };
+            }
+
+            readerContent.appendChild(msgDiv);
+        });
+    }
+
+    function saveUpdatedMessagesToArticle(article, messagesList) {
+        // Extract original header lines (# Category / #Channel)
+        let lines = (article.content || '').split('\n');
+        let headerLines = [];
+        for (let l of lines) {
+            if (l.startsWith('# ') || l.startsWith('*Extracted') || l.startsWith('*Total') || l.startsWith('---')) {
+                headerLines.push(l);
+            } else if (l.startsWith('### **')) {
+                break;
+            }
+        }
+        let headerText = headerLines.join('\n');
+        
+        let newContent = headerText + '\n\n';
+        messagesList.forEach(m => {
+            newContent += `### **${m.author}** (\`${m.timestamp}\`)\n${m.bodyText}\n\n`;
+        });
+
+        article.content = newContent;
+        article.msgCount = messagesList.length;
+        article.preview = messagesList.length > 0 ? messagesList[0].bodyText.substring(0, 150) : "";
+
+        // Overwrite or update in customArticles
+        let custIndex = customArticles.findIndex(a => a.id === article.id);
+        if (custIndex >= 0) {
+            customArticles[custIndex] = article;
+        } else {
+            customArticles.push(article);
+        }
+        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+
+        allArticles = getCombinedArticles();
+        renderReaderMessages(article);
+    }
+
     function showListView() {
         if (readerView) readerView.classList.remove('active');
+        if (listView) listView.classList.active;
         if (listView) listView.classList.add('active');
         if (heroBanner) heroBanner.style.display = 'block';
     }
@@ -455,10 +618,182 @@ function initApp() {
         };
     }
 
-    // 6. Modal Add / Edit Operations
+    // 7. Image Paste & Upload Handler with Auto Compression (~100KB) (Screenshot 3)
+    function compressImageFile(file, maxWidth = 1200, quality = 0.75, callback) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                callback(dataUrl);
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function renderImagePreviews() {
+        if (!imagePreviewContainer) return;
+        imagePreviewContainer.innerHTML = '';
+        if (pendingBase64Images.length === 0) {
+            imagePreviewContainer.style.display = 'none';
+            return;
+        }
+        imagePreviewContainer.style.display = 'flex';
+
+        pendingBase64Images.forEach((imgUrl, i) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'img-thumb-wrapper';
+            thumb.innerHTML = `
+                <img src="${imgUrl}" alt="Ảnh đính kèm">
+                <button type="button" class="img-remove-btn" data-index="${i}">&times;</button>
+            `;
+            thumb.querySelector('.img-remove-btn').onclick = () => {
+                pendingBase64Images.splice(i, 1);
+                renderImagePreviews();
+            };
+            imagePreviewContainer.appendChild(thumb);
+        });
+    }
+
+    // Paste image from Clipboard
+    if (inlineMsgTextarea) {
+        inlineMsgTextarea.onpaste = (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    compressImageFile(blob, 1200, 0.75, (compressedDataUrl) => {
+                        pendingBase64Images.push(compressedDataUrl);
+                        renderImagePreviews();
+                    });
+                }
+            }
+        };
+    }
+
+    // File input image upload
+    if (msgImageFileInput) {
+        msgImageFileInput.onchange = (e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                for (let file of files) {
+                    compressImageFile(file, 1200, 0.75, (compressedDataUrl) => {
+                        pendingBase64Images.push(compressedDataUrl);
+                        renderImagePreviews();
+                    });
+                }
+            }
+        };
+    }
+
+    // 8. Submit Inline Quick Add Message (Screenshot 3)
+    if (submitInlineMsgBtn) {
+        submitInlineMsgBtn.onclick = () => {
+            if (!currentArticleId) return;
+            const article = allArticles.find(a => a.id === currentArticleId);
+            if (!article) return;
+
+            const text = inlineMsgTextarea ? inlineMsgTextarea.value.trim() : "";
+            const nickname = msgNicknameInput ? msgNicknameInput.value.trim() || 'DBC' : 'DBC';
+
+            if (!text && pendingBase64Images.length === 0) {
+                alert("Vui lòng nhập nội dung luận giải hoặc đính kèm ảnh!");
+                return;
+            }
+
+            localStorage.setItem('LAST_NICKNAME', nickname);
+
+            // Construct body with text & embedded image tags
+            let newMsgBody = text;
+            if (pendingBase64Images.length > 0) {
+                pendingBase64Images.forEach((imgDataUrl, idx) => {
+                    newMsgBody += `\n\n![Ảnh đính kèm ${idx+1}](${imgDataUrl})`;
+                });
+            }
+
+            const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+            const newMsgFormatted = `### **${nickname}** (\`${nowStr}\`)\n${newMsgBody}\n\n`;
+
+            article.content = (article.content || '').trim() + '\n\n' + newMsgFormatted;
+            
+            const parsedMsgs = parseMessagesFromContent(article.content);
+            article.msgCount = parsedMsgs.length;
+
+            // Save to customArticles
+            let custIdx = customArticles.findIndex(a => a.id === article.id);
+            if (custIdx >= 0) {
+                customArticles[custIdx] = article;
+            } else {
+                customArticles.push(article);
+            }
+            localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+
+            allArticles = getCombinedArticles();
+
+            // Clear inputs & preview
+            if (inlineMsgTextarea) inlineMsgTextarea.value = '';
+            pendingBase64Images = [];
+            renderImagePreviews();
+
+            // Re-render reader messages view
+            renderReaderMessages(article);
+        };
+    }
+
+    // 9. Add New Category Modal (Screenshot 4)
+    if (addCategoryBtnSidebar) {
+        addCategoryBtnSidebar.onclick = () => {
+            if (categoryModal) categoryModal.classList.add('active');
+        };
+    }
+    if (closeCategoryModalBtn) closeCategoryModalBtn.onclick = () => categoryModal.classList.remove('active');
+    if (cancelCategoryModalBtn) cancelCategoryModalBtn.onclick = () => categoryModal.classList.remove('active');
+    if (categoryModalBackdrop) categoryModalBackdrop.onclick = () => categoryModal.classList.remove('active');
+
+    if (categoryForm) {
+        categoryForm.onsubmit = (e) => {
+            e.preventDefault();
+            const newCat = newCategoryTitleInput ? newCategoryTitleInput.value.trim() : "";
+            if (!newCat) return;
+
+            if (!categories.includes(newCat)) {
+                defaultCategories.push(newCat);
+                refreshCategories();
+                renderNavigation();
+                selectCategory(newCat);
+            }
+            if (newCategoryTitleInput) newCategoryTitleInput.value = "";
+            categoryModal.classList.remove('active');
+        };
+    }
+
+    // Header Category "+ Thêm Chủ Đề Mới" button (Screenshot 4)
+    if (addChannelBtnCategory) {
+        addChannelBtnCategory.onclick = () => {
+            openAddModal();
+        };
+    }
+
+    // 10. Topic Add/Edit Modal Submission
     function openAddModal() {
         renderNavigation();
-        if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết Mới";
+        if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết / Chủ Đề Mới";
         if (editArticleId) editArticleId.value = "";
         
         let targetCat = categories[0] || "";
@@ -476,6 +811,7 @@ function initApp() {
 
         if (formTitleInput) formTitleInput.value = "";
         if (formContent) formContent.value = "";
+        if (formAuthorInput) formAuthorInput.value = localStorage.getItem('LAST_NICKNAME') || 'DBC';
         if (articleModal) articleModal.classList.add('active');
     }
 
@@ -485,7 +821,7 @@ function initApp() {
         if (!article) return;
 
         renderNavigation();
-        if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Bài Viết";
+        if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề / Kênh";
         if (editArticleId) editArticleId.value = article.id;
         
         if (formCategorySelect) {
@@ -505,7 +841,6 @@ function initApp() {
         if (formTitleSelect) {
             formTitleSelect.value = article.title;
             if (formTitleSelect.value !== article.title) {
-                // If title isn't in list, pick create new
                 formTitleSelect.value = '__CREATE_NEW_TITLE__';
                 if (formTitleInput) {
                     formTitleInput.style.display = 'block';
@@ -547,14 +882,21 @@ function initApp() {
                 }
             }
 
-            const content = formContent ? formContent.value.trim() : "";
+            const author = formAuthorInput ? formAuthorInput.value.trim() || 'DBC' : 'DBC';
+            const contentText = formContent ? formContent.value.trim() : "";
 
-            if (!cat || !title || !content) {
+            if (!cat || !title || !contentText) {
                 alert("Vui lòng điền đầy đủ Chuyên mục, Tiêu đề và Nội dung!");
                 return;
             }
 
+            localStorage.setItem('LAST_NICKNAME', author);
+
+            // Check if an existing article with exact same category & title exists
+            let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
+
             if (id) {
+                // Editing specific article
                 let index = customArticles.findIndex(a => a.id === id);
                 let targetArt = allArticles.find(a => a.id === id);
                 
@@ -564,8 +906,8 @@ function initApp() {
                     category: cat,
                     title: title,
                     channel: title,
-                    content: content,
-                    preview: content.substring(0, 150)
+                    content: contentText,
+                    preview: contentText.substring(0, 150)
                 };
 
                 if (index >= 0) {
@@ -573,8 +915,29 @@ function initApp() {
                 } else {
                     customArticles.push(updatedArt);
                 }
+                currentArticleId = id;
+            } else if (existingArticle) {
+                // Append message to existing article channel (Screenshot 1 solution!)
+                const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                const newMsgFormatted = `### **${author}** (\`${nowStr}\`)\n${contentText}\n\n`;
+
+                existingArticle.content = (existingArticle.content || '').trim() + '\n\n' + newMsgFormatted;
+                const parsedMsgs = parseMessagesFromContent(existingArticle.content);
+                existingArticle.msgCount = parsedMsgs.length;
+
+                let custIdx = customArticles.findIndex(a => a.id === existingArticle.id);
+                if (custIdx >= 0) {
+                    customArticles[custIdx] = existingArticle;
+                } else {
+                    customArticles.push(existingArticle);
+                }
+                currentArticleId = existingArticle.id;
             } else {
+                // Create new article topic
                 const newId = `custom_${Date.now()}`;
+                const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+                const formattedContent = `# ${cat} / #${title}\n\n### **${author}** (\`${nowStr}\`)\n${contentText}\n`;
+
                 const newArt = {
                     id: newId,
                     category: cat,
@@ -582,8 +945,8 @@ function initApp() {
                     title: title,
                     isThread: false,
                     msgCount: 1,
-                    preview: content.substring(0, 150),
-                    content: `# ${cat} / #${title}\n\n${content}`
+                    preview: contentText.substring(0, 150),
+                    content: formattedContent
                 };
                 customArticles.push(newArt);
                 currentArticleId = newId;
@@ -598,7 +961,7 @@ function initApp() {
             allArticles = getCombinedArticles();
             refreshCategories();
             renderNavigation();
-            renderArticleList();
+            selectCategory(cat);
             closeModal();
 
             if (currentArticleId) {
@@ -610,7 +973,7 @@ function initApp() {
     if (deleteArticleBtn) {
         deleteArticleBtn.onclick = () => {
             if (!currentArticleId) return;
-            if (confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) {
+            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ chủ đề này không?")) {
                 deletedArticleIds.push(currentArticleId);
                 try {
                     localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
@@ -662,7 +1025,7 @@ function initApp() {
         };
     }
 
-    // 7. Mobile Drawer & Navigation Controls
+    // Mobile Drawer & Navigation Controls
     function openMobileSidebar() {
         if (appSidebar) appSidebar.classList.add('open');
         if (sidebarOverlay) sidebarOverlay.classList.add('active');
