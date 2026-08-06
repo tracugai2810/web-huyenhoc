@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - SINGLE GLOBAL STICKY SEARCH & BACK (V9)
+// KNOWLEDGE BASE APPLICATION LOGIC - UNIVERSAL GLOBAL SEARCH EVERYWHERE (V10)
 // ==========================================================================
 
 function initApp() {
@@ -88,7 +88,7 @@ function initApp() {
     const confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
     let onConfirmCallback = null;
 
-    // Custom Input Modal Elements (Loại bỏ hoàn toàn prompt phèn của trình duyệt)
+    // Custom Input Modal Elements
     const customInputModal = document.getElementById('customInputModal');
     const customInputBackdrop = document.getElementById('customInputBackdrop');
     const inputModalTitle = document.getElementById('inputModalTitle');
@@ -1338,27 +1338,22 @@ function initApp() {
         if (searchInput) searchInput.focus();
     };
 
-    // SINGLE GLOBAL SEARCH INPUT LOGIC (Handles global search everywhere!)
+    // SINGLE GLOBAL SEARCH INPUT LOGIC - ALWAYS RETURNS TO GLOBAL SEARCH LIST WHEN TYPING/MODIFYING! (User Request Fix)
     if (searchInput) {
         searchInput.oninput = (e) => {
             searchQuery = e.target.value;
             if (clearSearchBtn) {
                 clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
             }
+
+            // Always return to List View when typing or modifying search query!
+            showListView();
+
             if (searchQuery.trim()) {
                 activeCategory = 'ALL';
                 renderNavigation();
             }
-
-            if (currentArticleId && readerView && readerView.classList.contains('active')) {
-                const article = allArticles.find(a => a.id === currentArticleId);
-                if (article) {
-                    renderReaderMessages(article, searchQuery);
-                }
-            } else {
-                renderArticleList();
-                showListView();
-            }
+            renderArticleList();
         };
     }
 
@@ -1367,12 +1362,8 @@ function initApp() {
             if (searchInput) searchInput.value = '';
             searchQuery = '';
             clearSearchBtn.style.display = 'none';
-            if (currentArticleId && readerView && readerView.classList.contains('active')) {
-                const article = allArticles.find(a => a.id === currentArticleId);
-                if (article) renderReaderMessages(article, '');
-            } else {
-                renderArticleList();
-            }
+            showListView();
+            renderArticleList();
         };
     }
 
