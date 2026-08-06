@@ -621,6 +621,12 @@ h1, h2, h3, h4 {
     gap: 10px;
 }
 
+.header-actions-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .category-actions-group {
     display: inline-flex;
     align-items: center;
@@ -1283,6 +1289,28 @@ mark.active-search-match {
     .hero-desc { font-size: 12px; }
     
     .app-main { padding: 10px; padding-bottom: 24px; gap: 10px; }
+    
+    .view-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .header-left {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .header-actions-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
     .reader-article-card { padding: 14px; gap: 12px; }
     .reader-article-title { font-size: 18px; }
     .msg-block { padding: 12px; gap: 8px; }
