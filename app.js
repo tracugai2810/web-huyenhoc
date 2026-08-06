@@ -891,8 +891,8 @@ function initApp() {
                         <span class="msg-timestamp">${escapeHtml(msg.timestamp)}</span>
                     </div>
                     <div class="msg-actions">
-                        <button class="btn-icon-sm edit-msg-btn" title="Sửa nội dung này">✏️ Sửa</button>
-                        <button class="btn-icon-sm delete-msg-btn" style="color:#EF4444;" title="Xóa nội dung này">🗑️ Xóa</button>
+                        <button class="btn-icon-sm edit-msg-btn" title="Sửa nội dung này"><span>✏️</span><span class="btn-text"> Sửa</span></button>
+                        <button class="btn-icon-sm delete-msg-btn" style="color:#EF4444;" title="Xóa nội dung này"><span>🗑️</span><span class="btn-text"> Xóa</span></button>
                     </div>
                 </div>
                 <div class="msg-body markdown-body">${renderedBody}</div>

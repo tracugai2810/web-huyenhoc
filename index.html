@@ -2,7 +2,7 @@
 <html lang="vi" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
     <title>Thư Viện Bách Khoa Huyền Học</title>
     <meta name="description" content="Chuyên trang lưu trữ, tra cứu kiến thức Tử Vi, Phong Thủy, Lục Hào, Bát Tự cá nhân.">
     <!-- Google Fonts: Be Vietnam Pro & Plus Jakarta Sans -->
@@ -35,6 +35,7 @@
                 </button>
                 <button id="exportBackupBtn" class="btn btn-secondary" title="Sao lưu dữ liệu">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    <span class="btn-text">Sao lưu</span>
                 </button>
             </div>
         </div>
@@ -112,7 +113,7 @@
                     <!-- Nút Quay Lại dính liền bên trái ô tìm kiếm khi đọc bài -->
                     <button id="backToListBtnHeader" class="btn btn-back" style="display: none;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                        <span>Quay lại</span>
+                        <span class="btn-text">Quay lại</span>
                     </button>
 
                     <div class="search-input-wrapper">
@@ -132,14 +133,14 @@
                         
                         <!-- Category Action Buttons (Sửa & Xóa Chuyên Mục) -->
                         <div class="category-actions-group" id="categoryActionsGroup" style="display: none;">
-                            <button id="editCategoryBtn" class="btn-icon-sm" title="Sửa tên chuyên mục này">✏️ Sửa chuyên mục</button>
-                            <button id="deleteCategoryBtn" class="btn-icon-sm" style="color: #EF4444;" title="Xóa chuyên mục này">🗑️ Xóa chuyên mục</button>
+                            <button id="editCategoryBtn" class="btn-icon-sm" title="Sửa tên chuyên mục này"><span>✏️</span><span class="btn-text"> Sửa chuyên mục</span></button>
+                            <button id="deleteCategoryBtn" class="btn-icon-sm" style="color: #EF4444;" title="Xóa chuyên mục này"><span>🗑️</span><span class="btn-text"> Xóa chuyên mục</span></button>
                         </div>
                     </div>
 
                     <div class="header-right-actions" id="headerRightActions">
-                        <button id="addChannelBtnCategory" class="btn btn-primary btn-sm-mobile" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
-                            ➕ <span class="desktop-only">Thêm Chủ Đề Mới</span><span class="mobile-only">Tạo chủ đề</span>
+                        <button id="addChannelBtnCategory" class="btn btn-primary" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
+                            <span>➕</span><span class="btn-text"> Thêm Chủ Đề Mới</span>
                         </button>
                     </div>
                 </div>
@@ -168,9 +169,9 @@
                     </div>
 
                     <div class="reader-actions">
-                        <button id="editTopicBtn" class="btn btn-outline-sm" title="Sửa tiêu đề chủ đề">✏️ Sửa Chủ Đề</button>
-                        <button id="deleteArticleBtn" class="btn btn-danger-sm" title="Xóa chủ đề này">🗑️ Xóa Chủ Đề Này</button>
-                        <button id="downloadMdBtn" class="btn btn-outline-sm" title="Tải file .md">📥 Tải .md</button>
+                        <button id="editTopicBtn" class="btn btn-outline-sm" title="Sửa tiêu đề chủ đề"><span>✏️</span><span class="btn-text"> Sửa Chủ Đề</span></button>
+                        <button id="deleteArticleBtn" class="btn btn-danger-sm" title="Xóa chủ đề này"><span>🗑️</span><span class="btn-text"> Xóa Chủ Đề Này</span></button>
+                        <button id="downloadMdBtn" class="btn btn-outline-sm" title="Tải file .md"><span>📥</span><span class="btn-text"> Tải .md</span></button>
                     </div>
                 </div>
 
@@ -198,12 +199,12 @@
 
                             <div class="msg-form-actions-row">
                                 <div class="file-upload-btn-wrapper">
-                                    <label for="msgImageFileInput" class="btn btn-outline-sm">📷 Đính kèm ảnh</label>
+                                    <label for="msgImageFileInput" class="btn btn-outline-sm"><span>📷</span><span class="btn-text"> Đính kèm ảnh</span></label>
                                     <input type="file" id="msgImageFileInput" accept="image/*" style="display: none;">
                                 </div>
                                 
                                 <button type="button" id="submitInlineMsgBtn" class="btn btn-primary">
-                                    <span>➕ Đăng Luận Giải</span>
+                                    <span>➕</span><span class="btn-text"> Đăng Luận Giải</span>
                                 </button>
                             </div>
 
@@ -308,7 +309,7 @@
         </div>
     </div>
 
-    <!-- Modal 5: Mandatory First-Time Visitor Verification & Nickname Modal (Bắt buộc Nhập Mật Khẩu 2810 & Nickname Lần Đầu) -->
+    <!-- Modal 5: Mandatory First-Time Visitor Verification & Nickname Modal -->
     <div class="modal" id="mandatoryNickModal">
         <div class="modal-backdrop" style="background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(10px);"></div>
         <div class="modal-card modal-sm confirm-card-centered">
@@ -338,7 +339,7 @@
         </div>
     </div>
 
-    <!-- Modal 6: Activity History Log Modal (Không có nút Xóa Lịch Sử - Đảm bảo nguyên vẹn Nhật ký) -->
+    <!-- Modal 6: Activity History Log Modal -->
     <div class="modal" id="activityLogModal">
         <div class="modal-backdrop" id="activityLogBackdrop"></div>
         <div class="modal-card modal-sm">
