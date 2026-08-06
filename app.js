@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - BE VIETNAM PRO + DROPDOWN CATEGORY SELECT
+// KNOWLEDGE BASE APPLICATION LOGIC - CATEGORY & TITLE DROPDOWNS
 // ==========================================================================
 
 function initApp() {
@@ -14,7 +14,6 @@ function initApp() {
     const sidebarCategoryList = document.getElementById('sidebarCategoryList');
     const sidebarFilterInput = document.getElementById('sidebarFilterInput');
     
-    const categoryPills = document.getElementById('categoryPills');
     const statArticlesCount = document.getElementById('statArticlesCount');
     const statCategoryCount = document.getElementById('statCategoryCount');
     
@@ -59,7 +58,8 @@ function initApp() {
     
     const formCategorySelect = document.getElementById('formCategorySelect');
     const formNewCategoryInput = document.getElementById('formNewCategoryInput');
-    const formTitle = document.getElementById('formTitle');
+    const formTitleSelect = document.getElementById('formTitleSelect');
+    const formTitleInput = document.getElementById('formTitleInput');
     const formContent = document.getElementById('formContent');
 
     // Bottom Nav Elements
@@ -144,7 +144,7 @@ function initApp() {
     let currentArticleId = null;
     let readerFontSize = 16;
 
-    // 3. Render Navigation Bars
+    // 3. Render Navigation Sidebar
     function renderNavigation(filterFilterText = '') {
         let filteredCats = categories;
         if (filterFilterText.trim()) {
@@ -177,24 +177,6 @@ function initApp() {
             });
         }
 
-        // Horizontal Category Pills
-        if (categoryPills) {
-            categoryPills.innerHTML = '';
-            const allPill = document.createElement('button');
-            allPill.className = `pill ${activeCategory === 'ALL' ? 'active' : ''}`;
-            allPill.textContent = '🌐 Tất cả';
-            allPill.onclick = () => selectCategory('ALL');
-            categoryPills.appendChild(allPill);
-
-            categories.forEach(cat => {
-                const pill = document.createElement('button');
-                pill.className = `pill ${activeCategory === cat ? 'active' : ''}`;
-                pill.textContent = cat;
-                pill.onclick = () => selectCategory(cat);
-                categoryPills.appendChild(pill);
-            });
-        }
-
         // Populate Category Dropdown Select in Modal
         if (formCategorySelect) {
             formCategorySelect.innerHTML = '';
@@ -204,7 +186,6 @@ function initApp() {
                 opt.textContent = `📂 ${cat}`;
                 formCategorySelect.appendChild(opt);
             });
-            // Option to create a new category
             const newOpt = document.createElement('option');
             newOpt.value = '__CREATE_NEW__';
             newOpt.textContent = '➕ Tạo chuyên mục mới...';
@@ -230,10 +211,51 @@ function initApp() {
         };
     }
 
-    // Category Select Dropdown change listener
+    // Populate Channel / Title dropdown based on selected category
+    function refreshTitleDropdown(selectedCat) {
+        if (!formTitleSelect) return;
+        formTitleSelect.innerHTML = '';
+
+        let catArticles = [];
+        if (selectedCat && selectedCat !== '__CREATE_NEW__') {
+            catArticles = allArticles.filter(a => a.category === selectedCat);
+        }
+
+        // Add option to type custom title
+        const createOpt = document.createElement('option');
+        createOpt.value = '__CREATE_NEW_TITLE__';
+        createOpt.textContent = '➕ Tạo tiêu đề / kênh mới...';
+        formTitleSelect.appendChild(createOpt);
+
+        catArticles.forEach(art => {
+            const opt = document.createElement('option');
+            opt.value = art.title;
+            opt.textContent = `📄 ${art.title}`;
+            formTitleSelect.appendChild(opt);
+        });
+
+        // Default to create new title if none exist
+        if (catArticles.length === 0) {
+            formTitleSelect.value = '__CREATE_NEW_TITLE__';
+            if (formTitleInput) {
+                formTitleInput.style.display = 'block';
+                formTitleInput.required = true;
+            }
+        } else {
+            // Select first existing title by default or allow creation
+            formTitleSelect.value = catArticles[0].title;
+            if (formTitleInput) {
+                formTitleInput.style.display = 'none';
+                formTitleInput.required = false;
+            }
+        }
+    }
+
+    // Category Select Dropdown Listener
     if (formCategorySelect) {
         formCategorySelect.onchange = () => {
-            if (formCategorySelect.value === '__CREATE_NEW__') {
+            const val = formCategorySelect.value;
+            if (val === '__CREATE_NEW__') {
                 if (formNewCategoryInput) {
                     formNewCategoryInput.style.display = 'block';
                     formNewCategoryInput.focus();
@@ -242,6 +264,27 @@ function initApp() {
                 if (formNewCategoryInput) {
                     formNewCategoryInput.style.display = 'none';
                     formNewCategoryInput.value = '';
+                }
+            }
+            refreshTitleDropdown(val);
+        };
+    }
+
+    // Title Select Dropdown Listener
+    if (formTitleSelect) {
+        formTitleSelect.onchange = () => {
+            const val = formTitleSelect.value;
+            if (val === '__CREATE_NEW_TITLE__') {
+                if (formTitleInput) {
+                    formTitleInput.style.display = 'block';
+                    formTitleInput.required = true;
+                    formTitleInput.focus();
+                }
+            } else {
+                if (formTitleInput) {
+                    formTitleInput.style.display = 'none';
+                    formTitleInput.required = false;
+                    formTitleInput.value = '';
                 }
             }
         };
@@ -414,23 +457,24 @@ function initApp() {
 
     // 6. Modal Add / Edit Operations
     function openAddModal() {
-        renderNavigation(); // Refresh categories in dropdown
+        renderNavigation();
         if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết Mới";
         if (editArticleId) editArticleId.value = "";
         
-        if (formCategorySelect) {
-            if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
-                formCategorySelect.value = activeCategory;
-            } else if (categories.length > 0) {
-                formCategorySelect.value = categories[0];
-            }
+        let targetCat = categories[0] || "";
+        if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
+            targetCat = activeCategory;
         }
+
+        if (formCategorySelect) formCategorySelect.value = targetCat;
         if (formNewCategoryInput) {
             formNewCategoryInput.style.display = 'none';
             formNewCategoryInput.value = "";
         }
 
-        if (formTitle) formTitle.value = "";
+        refreshTitleDropdown(targetCat);
+
+        if (formTitleInput) formTitleInput.value = "";
         if (formContent) formContent.value = "";
         if (articleModal) articleModal.classList.add('active');
     }
@@ -440,7 +484,7 @@ function initApp() {
         const article = allArticles.find(a => a.id === currentArticleId);
         if (!article) return;
 
-        renderNavigation(); // Refresh categories
+        renderNavigation();
         if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Bài Viết";
         if (editArticleId) editArticleId.value = article.id;
         
@@ -456,8 +500,22 @@ function initApp() {
                 }
             }
         }
+
+        refreshTitleDropdown(article.category);
+        if (formTitleSelect) {
+            formTitleSelect.value = article.title;
+            if (formTitleSelect.value !== article.title) {
+                // If title isn't in list, pick create new
+                formTitleSelect.value = '__CREATE_NEW_TITLE__';
+                if (formTitleInput) {
+                    formTitleInput.style.display = 'block';
+                    formTitleInput.value = article.title;
+                }
+            } else {
+                if (formTitleInput) formTitleInput.style.display = 'none';
+            }
+        }
         
-        if (formTitle) formTitle.value = article.title;
         if (formContent) formContent.value = article.content;
         if (articleModal) articleModal.classList.add('active');
     }
@@ -480,7 +538,15 @@ function initApp() {
                 }
             }
 
-            const title = formTitle ? formTitle.value.trim() : "";
+            let title = "";
+            if (formTitleSelect) {
+                if (formTitleSelect.value === '__CREATE_NEW_TITLE__') {
+                    title = formTitleInput ? formTitleInput.value.trim() : "";
+                } else {
+                    title = formTitleSelect.value.trim();
+                }
+            }
+
             const content = formContent ? formContent.value.trim() : "";
 
             if (!cat || !title || !content) {

@@ -97,20 +97,13 @@
                 </div>
             </section>
 
-            <!-- Sticky Search & Filter Section -->
+            <!-- Sticky Search Section -->
             <section class="search-section">
                 <div class="search-bar-container">
                     <div class="search-input-wrapper">
                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                         <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa (Vd: Hóa Kỵ, Tử vi, Phong thủy, Phụ mẫu)...">
                         <button id="clearSearchBtn" class="clear-btn" style="display: none;">&times;</button>
-                    </div>
-                </div>
-
-                <!-- Horizontal Category Scroll Pills -->
-                <div class="pills-scroll-container">
-                    <div class="category-pills" id="categoryPills">
-                        <!-- Rendered by JS -->
                     </div>
                 </div>
             </section>
@@ -218,25 +211,28 @@
             <form id="articleForm" class="modal-body">
                 <input type="hidden" id="editArticleId">
 
-                <!-- Choose / Create Category -->
+                <!-- 1. Select / Create Category -->
                 <div class="form-field">
-                    <label for="formCategorySelect">Chọn Chuyên mục có sẵn:</label>
+                    <label for="formCategorySelect">Chọn Chuyên mục:</label>
                     <select id="formCategorySelect" class="form-select">
                         <!-- Categories populated by JS -->
                     </select>
                     <input type="text" id="formNewCategoryInput" placeholder="Nhập tên chuyên mục mới..." style="display: none; margin-top: 8px;">
                 </div>
 
-                <!-- Title / Channel Name -->
+                <!-- 2. Select / Create Title or Channel -->
                 <div class="form-field">
-                    <label for="formTitle">Tiêu đề bài viết / Tên kênh:</label>
-                    <input type="text" id="formTitle" placeholder="Vd: Luận gia đạo, Tử vi nữ mệnh..." required>
+                    <label for="formTitleSelect">Chọn Tên Kênh / Bài Viết có sẵn (hoặc tạo mới):</label>
+                    <select id="formTitleSelect" class="form-select">
+                        <!-- Populated based on selected category -->
+                    </select>
+                    <input type="text" id="formTitleInput" placeholder="Nhập tên kênh / tiêu đề bài viết mới..." style="display: none; margin-top: 8px;">
                 </div>
 
-                <!-- Markdown Content -->
+                <!-- 3. Markdown Content -->
                 <div class="form-field">
                     <label for="formContent">Nội dung bài viết (Hỗ trợ Markdown):</label>
-                    <textarea id="formContent" rows="11" placeholder="Nhập nội dung văn bản (dùng #, ##, **, * hoặc định dạng danh sách)..." required></textarea>
+                    <textarea id="formContent" rows="10" placeholder="Nhập nội dung văn bản (dùng #, ##, **, * hoặc định dạng danh sách)..." required></textarea>
                 </div>
 
                 <div class="modal-footer">
