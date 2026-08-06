@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - DUPLICATE CHECK & MATCH SNIPPETS (V4)
+// KNOWLEDGE BASE APPLICATION LOGIC - STICKY SEARCH & MULTI-MATCH SNIPPETS (V5)
 // ==========================================================================
 
 function initApp() {
@@ -50,9 +50,6 @@ function initApp() {
     const addChannelBtnCategory = document.getElementById('addChannelBtnCategory');
 
     const backToListBtn = document.getElementById('backToListBtn');
-    const fontDecBtn = document.getElementById('fontDecBtn');
-    const fontResetBtn = document.getElementById('fontResetBtn');
-    const fontIncBtn = document.getElementById('fontIncBtn');
     
     const readerCategory = document.getElementById('readerCategory');
     const readerThreadBadge = document.getElementById('readerThreadBadge');
@@ -91,7 +88,7 @@ function initApp() {
     const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
     const editTopicId = document.getElementById('editTopicId');
 
-    // Custom Modern Confirm & Alert Modal Elements
+    // Custom Confirm & Alert Modal Elements
     const customConfirmModal = document.getElementById('customConfirmModal');
     const customConfirmBackdrop = document.getElementById('customConfirmBackdrop');
     const confirmModalTitle = document.getElementById('confirmModalTitle');
@@ -241,7 +238,6 @@ function initApp() {
     let searchQuery = '';
     let sortMode = 'default';
     let currentArticleId = null;
-    let readerFontSize = 16;
 
     // Vietnamese Diacritics & Hyphen Normalizer
     function normalizeSearchText(str) {
@@ -255,26 +251,31 @@ function initApp() {
                   .trim();
     }
 
-    // Extract a 120-char snippet around match location (Screenshot 2 feature!)
-    function getMatchedSnippet(content, rawQuery) {
-        if (!content || !rawQuery) return content ? content.substring(0, 150) : "";
-        
-        const normContent = normalizeSearchText(content);
+    // Extract ALL matching message snippets for search cards (Screenshot 1 & 2 Feature!)
+    function getAllMatchedSnippets(articleContent, rawQuery, maxSnippets = 3) {
+        if (!articleContent || !rawQuery) return [];
+
+        const msgs = parseMessagesFromContent(articleContent);
         const normQuery = normalizeSearchText(rawQuery);
-        
-        const matchIdx = normContent.indexOf(normQuery);
-        if (matchIdx < 0) {
-            return content.substring(0, 150);
+        let snippets = [];
+
+        for (let m of msgs) {
+            const normBody = normalizeSearchText(m.bodyText);
+            if (normBody.includes(normQuery)) {
+                const matchIdx = normBody.indexOf(normQuery);
+                const start = Math.max(0, matchIdx - 35);
+                const end = Math.min(m.bodyText.length, matchIdx + normQuery.length + 65);
+
+                let snipText = m.bodyText.substring(start, end).replace(/\n+/g, ' ').trim();
+                if (start > 0) snipText = '... ' + snipText;
+                if (end < m.bodyText.length) snipText = snipText + ' ...';
+
+                snippets.push(snipText);
+                if (snippets.length >= maxSnippets) break;
+            }
         }
 
-        const start = Math.max(0, matchIdx - 40);
-        const end = Math.min(content.length, matchIdx + normQuery.length + 80);
-        
-        let snippet = content.substring(start, end).replace(/\n+/g, ' ').trim();
-        if (start > 0) snippet = '... ' + snippet;
-        if (end < content.length) snippet = snippet + ' ...';
-        
-        return snippet;
+        return snippets;
     }
 
     // Render Navigation Sidebar
@@ -341,7 +342,7 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List with DYNAMIC MATCHED SNIPPET
+    // Render Article Grid List with MULTI-SNIPPET SEARCH CARDS
     function renderArticleList() {
         if (!articleGrid) return;
         
@@ -397,12 +398,20 @@ function initApp() {
             card.className = 'article-card';
             
             let displayTitle = escapeHtml(art.title || 'Chủ đề');
-            let rawSnippet = trimmedQuery ? getMatchedSnippet(art.content, trimmedQuery) : (art.preview || "Nội dung bài viết...");
-            let displaySnippet = escapeHtml(rawSnippet);
 
+            let snippetHtml = '';
             if (trimmedQuery) {
                 displayTitle = highlightText(displayTitle, trimmedQuery);
-                displaySnippet = highlightText(displaySnippet, trimmedQuery);
+                const matchedSnippets = getAllMatchedSnippets(art.content, trimmedQuery, 3);
+                
+                if (matchedSnippets.length > 0) {
+                    let itemsHtml = matchedSnippets.map(snip => `<div class="snippet-item">${highlightText(escapeHtml(snip), trimmedQuery)}</div>`).join('');
+                    snippetHtml = `<div class="card-matched-snippets">${itemsHtml}</div>`;
+                } else {
+                    snippetHtml = `<p class="card-snippet">${highlightText(escapeHtml(art.preview || "Nội dung..."), trimmedQuery)}</p>`;
+                }
+            } else {
+                snippetHtml = `<p class="card-snippet">${escapeHtml(art.preview || "Nội dung bài viết...")}</p>`;
             }
 
             card.innerHTML = `
@@ -412,7 +421,7 @@ function initApp() {
                     <span class="tag-msg">💬 ${art.msgCount || 0} luận giải</span>
                 </div>
                 <h3 class="card-heading">${displayTitle}</h3>
-                <p class="card-snippet">${displaySnippet}</p>
+                ${snippetHtml}
             `;
 
             card.onclick = () => openReaderView(art.id, searchQuery);
@@ -438,7 +447,7 @@ function initApp() {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // Parse Markdown Content into Individual Messages (Returns [] if 0 messages - Screenshot 1 Fix!)
+    // Parse Markdown Content into Individual Messages
     function parseMessagesFromContent(rawMarkdown) {
         if (!rawMarkdown) return [];
 
@@ -455,7 +464,6 @@ function initApp() {
             });
         }
 
-        // Return empty list if no messages exist yet!
         if (matches.length === 0) {
             return [];
         }
@@ -492,7 +500,7 @@ function initApp() {
         return { text, images };
     }
 
-    // Reader View & Interactive Message Rendering (Renders Empty Card State if 0 messages - Screenshot 1 Fix!)
+    // Reader View & Interactive Message Rendering
     function openReaderView(id, activeSearchQuery = '') {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -537,7 +545,6 @@ function initApp() {
         if (!readerContent) return;
         readerContent.innerHTML = '';
 
-        // Screenshot 1 Fix: Render Empty State if 0 messages!
         if (parsedMsgs.length === 0) {
             readerContent.innerHTML = `
                 <div class="empty-card" style="padding: 40px 20px; border: none; background: transparent;">
@@ -885,7 +892,7 @@ function initApp() {
         };
     }
 
-    // Category Modal with Strict DUPLICATE CHECKING
+    // Category Modal
     if (addCategoryBtnSidebar) {
         addCategoryBtnSidebar.onclick = () => {
             if (categoryModal) categoryModal.classList.add('active');
@@ -922,7 +929,7 @@ function initApp() {
         };
     }
 
-    // Topic Modal with Strict DUPLICATE CHECKING
+    // Topic Modal
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         
@@ -981,7 +988,6 @@ function initApp() {
             const normTitle = normalizeSearchText(title);
             let existingArticle = allArticles.find(a => a.category === cat && normalizeSearchText(a.title) === normTitle);
 
-            // Duplicate Topic Check when creating new!
             if (!id && existingArticle) {
                 showCustomAlert("Chủ đề đã tồn tại", `Chủ đề "${existingArticle.title}" đã có sẵn trong chuyên mục "${cat}". Đã mở chủ đề này cho bạn!`);
                 topicModal.classList.remove('active');
@@ -1046,7 +1052,7 @@ function initApp() {
         };
     }
 
-    // Delete Topic with Modern Confirm Modal
+    // Delete Topic
     if (deleteArticleBtn) {
         deleteArticleBtn.onclick = () => {
             if (!currentArticleId) return;
