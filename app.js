@@ -1,15 +1,34 @@
 // ==========================================================================
-// BÁCH KHOA HUYỀN HỌC - OFFICIAL GOOGLE FIREBASE REALTIME CLOUD ENGINE (V21)
+// BÁCH KHOA HUYỀN HỌC - HANOI TIMEZONE (GMT+7) & REAL-TIME SYNC ENGINE (V22)
 // ==========================================================================
 
 function initApp() {
-    console.log("Initializing Bách Khoa Huyền Học App with Official Google Firebase Cloud...");
+    console.log("Initializing Bách Khoa Huyền Học App with Hanoi Timezone & Real-Time Sync...");
 
     // Official User's Google Firebase Cloud Database REST Endpoints
     const FIREBASE_BASE_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app';
     const FIREBASE_LOGS_URL = `${FIREBASE_BASE_URL}/logs.json`;
     const FIREBASE_ARTICLES_URL = `${FIREBASE_BASE_URL}/custom_articles.json`;
     const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
+
+    // Hanoi Timezone (GMT+7) Formatter
+    function getVietnamTimeString() {
+        try {
+            const options = {
+                timeZone: 'Asia/Ho_Chi_Minh',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            };
+            return new Intl.DateTimeFormat('sv-SE', options).format(new Date());
+        } catch (e) {
+            return new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+    }
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -161,7 +180,7 @@ function initApp() {
 
     // Log User Action & Push to Official Google Firebase Cloud
     async function logActivity(actionText) {
-        const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        const nowStr = getVietnamTimeString();
         const logItem = {
             time: nowStr,
             user: currentUsername || 'DBC',
@@ -457,18 +476,53 @@ function initApp() {
     let defaultCategories = window.INITIAL_CATEGORIES || [];
 
     let customArticles = [];
+    let customCategories = [];
     let deletedArticleIds = [];
 
     try {
         customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
-    } catch (e) {
-        console.warn('Cannot parse CUSTOM_ARTICLES from localStorage:', e);
-    }
+    } catch (e) {}
+
+    try {
+        customCategories = JSON.parse(localStorage.getItem('CUSTOM_CATEGORIES') || '[]');
+    } catch (e) {}
 
     try {
         deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
-    } catch (e) {
-        console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
+    } catch (e) {}
+
+    // Synchronize Custom Categories with Google Firebase Cloud
+    async function syncCategoriesFromCloud() {
+        try {
+            if (typeof fetch === 'function') {
+                const res = await fetch(FIREBASE_CATEGORIES_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    let cloudCats = [];
+                    if (Array.isArray(data)) cloudCats = data;
+                    else if (data && typeof data === 'object') cloudCats = Object.values(data);
+
+                    if (cloudCats.length > 0) {
+                        let catSet = new Set([...customCategories, ...cloudCats]);
+                        customCategories = Array.from(catSet);
+                        localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
+                        refreshCategories();
+                        renderNavigation();
+                    }
+                }
+            }
+        } catch (e) {}
+    }
+
+    function saveCategoriesToCloud(catsList) {
+        localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(catsList));
+        if (typeof fetch === 'function') {
+            fetch(FIREBASE_CATEGORIES_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(catsList)
+            }).catch(e => {});
+        }
     }
 
     // Synchronize Shared Custom Topics & Messages across ALL users from Google Firebase Cloud Database!
@@ -487,17 +541,22 @@ function initApp() {
                         customArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
                         cloudArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
 
-                        customArticles = Array.from(mergedMap.values());
-                        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+                        const newCustom = Array.from(mergedMap.values());
+                        
+                        // Check if content changed
+                        if (JSON.stringify(newCustom) !== JSON.stringify(customArticles)) {
+                            customArticles = newCustom;
+                            localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
 
-                        allArticles = getCombinedArticles();
-                        refreshCategories();
-                        renderNavigation();
-                        renderArticleList();
+                            allArticles = getCombinedArticles();
+                            refreshCategories();
+                            renderNavigation();
+                            renderArticleList();
 
-                        if (currentArticleId) {
-                            const activeArt = allArticles.find(a => a.id === currentArticleId);
-                            if (activeArt) renderReaderMessages(activeArt);
+                            if (currentArticleId) {
+                                const activeArt = allArticles.find(a => a.id === currentArticleId);
+                                if (activeArt) renderReaderMessages(activeArt);
+                            }
                         }
                     }
                 }
@@ -544,7 +603,7 @@ function initApp() {
     let categories = [];
 
     function refreshCategories() {
-        let catSet = new Set(defaultCategories);
+        let catSet = new Set([...defaultCategories, ...customCategories]);
         allArticles.forEach(a => {
             if (a && a.category) catSet.add(a.category);
         });
@@ -741,6 +800,11 @@ function initApp() {
                     const idx = defaultCategories.indexOf(activeCategory);
                     if (idx >= 0) defaultCategories[idx] = newName;
                     
+                    const cIdx = customCategories.indexOf(activeCategory);
+                    if (cIdx >= 0) customCategories[cIdx] = newName;
+                    else customCategories.push(newName);
+
+                    saveCategoriesToCloud(customCategories);
                     refreshCategories();
                     selectCategory(newName);
                     logActivity(`Đổi tên chuyên mục "${oldCat}" thành "${newName}"`);
@@ -769,6 +833,11 @@ function initApp() {
 
                     const catIdx = defaultCategories.indexOf(activeCategory);
                     if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
+
+                    const cIdx = customCategories.indexOf(activeCategory);
+                    if (cIdx >= 0) customCategories.splice(cIdx, 1);
+
+                    saveCategoriesToCloud(customCategories);
 
                     allArticles = getCombinedArticles();
                     refreshCategories();
@@ -1352,7 +1421,7 @@ function initApp() {
         };
     }
 
-    // Submit Inline Quick Add Message
+    // Submit Inline Quick Add Message with Hanoi Timezone Timestamp
     if (submitInlineMsgBtn) {
         submitInlineMsgBtn.onclick = () => {
             if (!currentArticleId) return;
@@ -1373,8 +1442,8 @@ function initApp() {
                 });
             }
 
-            const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            const newMsgFormatted = `### **${currentUsername}** (\`${nowStr}\`)\n${newMsgBody}\n\n`;
+            const hanoiTimeStr = getVietnamTimeString();
+            const newMsgFormatted = `### **${currentUsername}** (\`${hanoiTimeStr}\`)\n${newMsgBody}\n\n`;
 
             article.content = (article.content || '').trim() + '\n\n' + newMsgFormatted;
             
@@ -1432,7 +1501,11 @@ function initApp() {
                 return;
             }
 
-            defaultCategories.push(newCat);
+            if (!customCategories.includes(newCat)) {
+                customCategories.push(newCat);
+                saveCategoriesToCloud(customCategories);
+            }
+
             refreshCategories();
             renderNavigation();
             selectCategory(newCat);
@@ -1639,9 +1712,10 @@ function initApp() {
     if (exportBackupBtn) {
         exportBackupBtn.onclick = () => {
             const backupData = {
-                exportDate: new Date().toISOString(),
+                exportDate: getVietnamTimeString(),
                 articles: allArticles,
-                customArticles: customArticles
+                customArticles: customArticles,
+                customCategories: customCategories
             };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -1746,10 +1820,18 @@ function initApp() {
 
     // Initial background cloud log & custom article sync with Official Google Firebase Cloud
     syncLogsFromCloud();
+    syncCategoriesFromCloud();
     syncCustomArticlesFromCloud();
 
+    // AUTOMATIC LIVE REALTIME CLOUD SYNC POLLING ENGINE (Tự động đồng bộ Realtime ngầm mỗi 5 giây)
+    setInterval(() => {
+        syncCategoriesFromCloud();
+        syncCustomArticlesFromCloud();
+        syncLogsFromCloud();
+    }, 5000);
+
     window.onhashchange = restoreStateFromHash;
-    console.log("App initialization completed with Google Firebase Cloud. Articles loaded:", allArticles.length);
+    console.log("App initialization completed. Live Realtime Sync Active (5s). Articles loaded:", allArticles.length);
 }
 
 // Ensure execution
