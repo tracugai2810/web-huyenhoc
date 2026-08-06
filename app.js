@@ -1,9 +1,9 @@
 // ==========================================================================
-// BÁCH KHOA HUYỀN HỌC - FIREBASE CLOUD MASTER SINGLE SOURCE OF TRUTH (V24)
+// BÁCH KHOA HUYỀN HỌC - BULLETPROOF REALTIME FIREBASE SYNC ENGINE (V25)
 // ==========================================================================
 
 function initApp() {
-    console.log("Initializing Bách Khoa Huyền Học App with Firebase Cloud Master Source of Truth...");
+    console.log("Initializing Bách Khoa Huyền Học App with Bulletproof Realtime Firebase Sync...");
 
     // Official User's Google Firebase Cloud Database REST Endpoints
     const FIREBASE_BASE_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app';
@@ -11,6 +11,9 @@ function initApp() {
     const FIREBASE_ARTICLES_URL = `${FIREBASE_BASE_URL}/custom_articles.json`;
     const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
     const FIREBASE_DELETED_URL = `${FIREBASE_BASE_URL}/deleted_article_ids.json`;
+
+    // Write Lock Timestamp to prevent Stale GET Overwrites (Anti-Race Condition)
+    let lastCloudWriteTime = 0;
 
     // Hanoi Timezone (GMT+7) Formatter (HH:mm:ss DD/MM/YYYY)
     function getVietnamTimeString() {
@@ -78,6 +81,7 @@ function initApp() {
     const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
 
     const backToListBtnHeader = document.getElementById('backToListBtnHeader');
+    const appBrandLogo = document.getElementById('appBrandLogo');
     
     const readerCategory = document.getElementById('readerCategory');
     const readerThreadBadge = document.getElementById('readerThreadBadge');
@@ -493,9 +497,19 @@ function initApp() {
     let customCategories = [];
     let deletedArticleIds = [];
 
+    // Load local storage initial fallback
+    try { customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]'); } catch (e) {}
+    try { customCategories = JSON.parse(localStorage.getItem('CUSTOM_CATEGORIES') || '[]'); } catch (e) {}
+    try { deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]'); } catch (e) {}
+
     // Unified Master Realtime Cloud Synchronization Function across All Devices!
     async function syncAllFromCloud() {
         if (typeof fetch !== 'function') return;
+
+        // Anti-Race Condition Guard: If local machine wrote to Cloud within 4 seconds, skip GET overwriting!
+        if (Date.now() - lastCloudWriteTime < 4000) {
+            return;
+        }
 
         try {
             const [artRes, catRes, delRes, logRes] = await Promise.all([
@@ -528,7 +542,7 @@ function initApp() {
                 if (Array.isArray(catData)) cloudCats = catData;
                 else if (catData && typeof catData === 'object') cloudCats = Object.values(catData);
 
-                if (JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
+                if (cloudCats.length > 0 && JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
                     customCategories = cloudCats;
                     localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
                     hasChanged = true;
@@ -542,7 +556,7 @@ function initApp() {
                 if (Array.isArray(artData)) cloudArts = artData;
                 else if (artData && typeof artData === 'object') cloudArts = Object.values(artData);
 
-                if (JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
+                if (cloudArts.length > 0 && JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
                     customArticles = cloudArts;
                     localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
                     hasChanged = true;
@@ -555,9 +569,11 @@ function initApp() {
                 let cloudLogs = [];
                 if (Array.isArray(logData)) cloudLogs = logData;
                 else if (logData && typeof logData === 'object') cloudLogs = Object.values(logData);
-                cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
-                localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
-                updateActivityBadge();
+                if (cloudLogs.length > 0) {
+                    cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                    localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
+                    updateActivityBadge();
+                }
             }
 
             // Re-render UI if Cloud state changed!
@@ -577,42 +593,53 @@ function initApp() {
         }
     }
 
-    function saveCategoriesToCloud(catsList) {
+    async function saveCategoriesToCloud(catsList) {
+        lastCloudWriteTime = Date.now();
         customCategories = catsList;
         localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(catsList));
         if (typeof fetch === 'function') {
-            fetch(FIREBASE_CATEGORIES_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(catsList)
-            }).catch(e => {});
+            try {
+                await fetch(FIREBASE_CATEGORIES_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(catsList)
+                });
+            } catch (e) {}
         }
     }
 
-    function saveDeletedIdsToCloud(delList) {
+    async function saveDeletedIdsToCloud(delList) {
+        lastCloudWriteTime = Date.now();
         deletedArticleIds = delList;
         localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(delList));
         if (typeof fetch === 'function') {
-            fetch(FIREBASE_DELETED_URL, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(delList)
-            }).catch(e => {});
+            try {
+                await fetch(FIREBASE_DELETED_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(delList)
+                });
+            } catch (e) {}
         }
     }
 
-    function saveCustomArticlesToCloud(articlesList) {
+    async function saveCustomArticlesToCloud(articlesList) {
+        lastCloudWriteTime = Date.now();
         customArticles = articlesList;
         localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(articlesList));
         if (typeof fetch === 'function') {
-            fetch(FIREBASE_ARTICLES_URL, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(articlesList)
-            }).catch(err => console.warn("Firebase Cloud custom articles PUT warning:", err));
+            try {
+                await fetch(FIREBASE_ARTICLES_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(articlesList)
+                });
+            } catch (err) {
+                console.warn("Firebase Cloud custom articles PUT warning:", err);
+            }
         }
     }
 
@@ -820,7 +847,7 @@ function initApp() {
                 "✏️ Sửa Tên Chuyên Mục",
                 `Nhập tên mới cho chuyên mục "${activeCategory}":`,
                 activeCategory,
-                (newName) => {
+                async (newName) => {
                     if (!newName || newName === activeCategory) return;
                     const oldCat = activeCategory;
 
@@ -839,7 +866,9 @@ function initApp() {
                     if (cIdx >= 0) customCategories[cIdx] = newName;
                     else customCategories.push(newName);
 
-                    saveCategoriesToCloud(customCategories);
+                    await saveCategoriesToCloud(customCategories);
+                    await saveCustomArticlesToCloud(customArticles);
+                    
                     refreshCategories();
                     selectCategory(newName);
                     logActivity(`Đổi tên chuyên mục "${oldCat}" thành "${newName}"`);
@@ -855,14 +884,16 @@ function initApp() {
             showCustomConfirm(
                 "🗑️ Xóa Chuyên Mục",
                 `Bạn có chắc chắn muốn xóa chuyên mục "${activeCategory}" và tất cả các chủ đề bên trong không?`,
-                () => {
+                async () => {
                     const deletedName = activeCategory;
                     const articlesToDelete = allArticles.filter(a => a.category === activeCategory);
                     articlesToDelete.forEach(art => {
-                        deletedArticleIds.push(art.id);
+                        if (!deletedArticleIds.includes(art.id)) {
+                            deletedArticleIds.push(art.id);
+                        }
                     });
 
-                    saveDeletedIdsToCloud(deletedArticleIds);
+                    await saveDeletedIdsToCloud(deletedArticleIds);
 
                     const catIdx = defaultCategories.indexOf(activeCategory);
                     if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
@@ -870,7 +901,7 @@ function initApp() {
                     const cIdx = customCategories.indexOf(activeCategory);
                     if (cIdx >= 0) customCategories.splice(cIdx, 1);
 
-                    saveCategoriesToCloud(customCategories);
+                    await saveCategoriesToCloud(customCategories);
 
                     allArticles = getCombinedArticles();
                     refreshCategories();
@@ -1317,7 +1348,7 @@ function initApp() {
                     }
 
                     if (saveInlineBtn) {
-                        saveInlineBtn.onclick = () => {
+                        saveInlineBtn.onclick = async () => {
                             let updatedText = textarea.value.trim();
                             if (editImagesList.length > 0) {
                                 editImagesList.forEach((imgUrl, i) => {
@@ -1327,7 +1358,7 @@ function initApp() {
 
                             if (updatedText) {
                                 parsedMsgs[idx].bodyText = updatedText;
-                                saveUpdatedMessagesToArticle(article, parsedMsgs);
+                                await saveUpdatedMessagesToArticle(article, parsedMsgs);
                                 logActivity(`Sửa đoạn luận giải trong chủ đề "${article.title}"`);
                             }
                         };
@@ -1342,9 +1373,9 @@ function initApp() {
                     showCustomConfirm(
                         "🗑️ Xóa luận giải",
                         "Bạn có chắc chắn muốn xóa đoạn luận giải này không?",
-                        () => {
+                        async () => {
                             parsedMsgs.splice(idx, 1);
-                            saveUpdatedMessagesToArticle(article, parsedMsgs);
+                            await saveUpdatedMessagesToArticle(article, parsedMsgs);
                             logActivity(`Xóa đoạn luận giải trong chủ đề "${article.title}"`);
                         }
                     );
@@ -1355,7 +1386,7 @@ function initApp() {
         });
     }
 
-    function saveUpdatedMessagesToArticle(article, messagesList) {
+    async function saveUpdatedMessagesToArticle(article, messagesList) {
         const headerText = `# ${article.category} / #${article.title}`;
         
         let newContent = headerText + '\n\n';
@@ -1374,7 +1405,7 @@ function initApp() {
             customArticles.push(article);
         }
         
-        saveCustomArticlesToCloud(customArticles);
+        await saveCustomArticlesToCloud(customArticles);
         allArticles = getCombinedArticles();
         renderReaderMessages(article);
     }
@@ -1465,7 +1496,7 @@ function initApp() {
 
     // Submit Inline Quick Add Message with Hanoi Timezone Timestamp
     if (submitInlineMsgBtn) {
-        submitInlineMsgBtn.onclick = () => {
+        submitInlineMsgBtn.onclick = async () => {
             if (!currentArticleId) return;
             const article = allArticles.find(a => a.id === currentArticleId);
             if (!article) return;
@@ -1499,7 +1530,7 @@ function initApp() {
                 customArticles.push(article);
             }
             
-            saveCustomArticlesToCloud(customArticles);
+            await saveCustomArticlesToCloud(customArticles);
             allArticles = getCombinedArticles();
 
             if (inlineMsgTextarea) inlineMsgTextarea.value = '';
@@ -1527,7 +1558,7 @@ function initApp() {
     if (categoryModalBackdrop) categoryModalBackdrop.onclick = () => categoryModal.classList.remove('active');
 
     if (categoryForm) {
-        categoryForm.onsubmit = (e) => {
+        categoryForm.onsubmit = async (e) => {
             e.preventDefault();
             const newCat = newCategoryTitleInput ? newCategoryTitleInput.value.trim() : "";
             if (!newCat) return;
@@ -1545,7 +1576,7 @@ function initApp() {
 
             if (!customCategories.includes(newCat)) {
                 customCategories.push(newCat);
-                saveCategoriesToCloud(customCategories);
+                await saveCategoriesToCloud(customCategories);
             }
 
             refreshCategories();
@@ -1614,7 +1645,7 @@ function initApp() {
     if (topicModalBackdrop) topicModalBackdrop.onclick = () => topicModal.classList.remove('active');
 
     if (topicForm) {
-        topicForm.onsubmit = (e) => {
+        topicForm.onsubmit = async (e) => {
             e.preventDefault();
             const id = editTopicId ? editTopicId.value : "";
             
@@ -1657,7 +1688,7 @@ function initApp() {
                         title: title,
                         channel: title
                     };
-                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
+                    await saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
 
                     if (index >= 0) {
                         customArticles[index] = updatedArt;
@@ -1686,7 +1717,7 @@ function initApp() {
                 logActivity(`Tạo chủ đề mới "${title}" trong chuyên mục "${cat}"`);
             }
 
-            saveCustomArticlesToCloud(customArticles);
+            await saveCustomArticlesToCloud(customArticles);
 
             allArticles = getCombinedArticles();
             refreshCategories();
@@ -1709,14 +1740,16 @@ function initApp() {
             showCustomConfirm(
                 "🗑️ Xóa Toàn Bộ Chủ Đề",
                 "Bạn có chắc chắn muốn xóa toàn bộ chủ đề này khỏi thư viện?",
-                () => {
-                    deletedArticleIds.push(currentArticleId);
-                    saveDeletedIdsToCloud(deletedArticleIds);
+                async () => {
+                    if (!deletedArticleIds.includes(currentArticleId)) {
+                        deletedArticleIds.push(currentArticleId);
+                    }
+                    await saveDeletedIdsToCloud(deletedArticleIds);
 
                     const custIdx = customArticles.findIndex(a => a.id === currentArticleId);
                     if (custIdx >= 0) {
                         customArticles.splice(custIdx, 1);
-                        saveCustomArticlesToCloud(customArticles);
+                        await saveCustomArticlesToCloud(customArticles);
                     }
 
                     logActivity(`Xóa toàn bộ chủ đề "${topicTitle}"`);
@@ -1823,7 +1856,6 @@ function initApp() {
 
     if (backToListBtnHeader) backToListBtnHeader.onclick = showListView;
 
-    const appBrandLogo = document.getElementById('appBrandLogo');
     if (appBrandLogo) {
         appBrandLogo.onclick = () => {
             selectCategory('ALL');
@@ -1874,7 +1906,7 @@ function initApp() {
     setInterval(syncAllFromCloud, 3000);
 
     window.onhashchange = restoreStateFromHash;
-    console.log("App initialization completed. Cloud Master Sync Active (3s). Articles loaded:", allArticles.length);
+    console.log("App initialization completed. Bulletproof Firebase Sync Active (3s). Articles loaded:", allArticles.length);
 }
 
 // Ensure execution
