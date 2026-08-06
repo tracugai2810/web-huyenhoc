@@ -346,6 +346,24 @@
                 <button type="button" class="btn btn-secondary" id="cancelActivityLogModalBtn">Đóng</button>
             </div>
         </div>
+    <!-- Modal 5: Premium Image Lightbox Preview Modal -->
+    <div class="lightbox-modal" id="imageLightboxModal">
+        <div class="lightbox-backdrop" id="lightboxBackdrop"></div>
+        <div class="lightbox-content">
+            <div class="lightbox-header">
+                <span class="lightbox-title" id="lightboxTitle">📷 Phóng to ảnh luận giải / lá số</span>
+                <div class="lightbox-actions">
+                    <a id="lightboxDownloadBtn" href="#" download="la-so.png" class="btn-icon-lightbox" title="Tải ảnh này về máy">📥</a>
+                    <button id="closeLightboxBtn" class="btn-icon-lightbox" title="Đóng">&times;</button>
+                </div>
+            </div>
+            <div class="lightbox-body">
+                <img id="lightboxImg" src="" alt="Ảnh phóng to lá số">
+            </div>
+            <div class="lightbox-footer">
+                <span class="lightbox-hint">💡 Bấm phím ESC, dấu ✖️ hoặc bấm ra ngoài nền tối để đóng</span>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Notification Container -->

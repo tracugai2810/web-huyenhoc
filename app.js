@@ -2031,6 +2031,52 @@ function initApp() {
         return false;
     }
 
+    // Premium Image Lightbox Preview Modal Engine
+    const imageLightboxModal = document.getElementById('imageLightboxModal');
+    const lightboxBackdrop = document.getElementById('lightboxBackdrop');
+    const lightboxImg = document.getElementById('lightboxImg');
+    const lightboxTitle = document.getElementById('lightboxTitle');
+    const lightboxDownloadBtn = document.getElementById('lightboxDownloadBtn');
+    const closeLightboxBtn = document.getElementById('closeLightboxBtn');
+
+    function openImageLightbox(src, title = 'Phóng to ảnh lá số / luận giải') {
+        if (!imageLightboxModal || !lightboxImg) return;
+        lightboxImg.src = src;
+        if (lightboxTitle) lightboxTitle.textContent = `📷 ${title}`;
+        if (lightboxDownloadBtn) {
+            lightboxDownloadBtn.href = src;
+            lightboxDownloadBtn.download = `la-so-${Date.now()}.png`;
+        }
+        imageLightboxModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageLightbox() {
+        if (!imageLightboxModal) return;
+        imageLightboxModal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    if (closeLightboxBtn) closeLightboxBtn.onclick = closeImageLightbox;
+    if (lightboxBackdrop) lightboxBackdrop.onclick = closeImageLightbox;
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && imageLightboxModal && imageLightboxModal.classList.contains('active')) {
+            closeImageLightbox();
+        }
+    });
+
+    // Delegate click events on any rendered image in reader messages or card attachments
+    document.addEventListener('click', (e) => {
+        const targetImg = e.target.closest('.reader-messages-list img, .msg-body img, .article-card img, .image-preview-container img');
+        if (targetImg && targetImg.src && !targetImg.classList.contains('no-lightbox')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const altOrTitle = targetImg.alt || targetImg.title || 'Ảnh lá số / luận giải';
+            openImageLightbox(targetImg.src, altOrTitle);
+        }
+    });
+
     renderNavigation();
     
     if (!restoreStateFromHash()) {
