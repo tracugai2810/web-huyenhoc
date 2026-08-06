@@ -248,6 +248,22 @@ h1, h2, h3, h4 {
     gap: 10px;
 }
 
+.brand-logo-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.brand-logo-link:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+}
+.brand-logo-link:active {
+    transform: translateY(0);
+}
+
 .brand-badge {
     font-size: 20px;
     width: 36px;

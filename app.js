@@ -1810,6 +1810,14 @@ function initApp() {
 
     if (backToListBtnHeader) backToListBtnHeader.onclick = showListView;
 
+    const appBrandLogo = document.getElementById('appBrandLogo');
+    if (appBrandLogo) {
+        appBrandLogo.onclick = () => {
+            selectCategory('ALL');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+    }
+
     // RESTORE STATE FROM URL HASH ON PAGE LOAD / REFRESH!
     function restoreStateFromHash() {
         const hash = (window.location && window.location.hash) ? window.location.hash : '';
