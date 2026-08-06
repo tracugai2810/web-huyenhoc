@@ -474,14 +474,15 @@ function initApp() {
     // View Navigation Helpers & URL Hash Router Persistence
     function updateUrlHash(type, param = '') {
         if (window.history && typeof window.history.replaceState === 'function') {
+            const cleanUrl = window.location.pathname + window.location.search;
             if (type === 'article') {
                 window.history.replaceState(null, '', `#article/${param}`);
             } else if (type === 'search') {
                 window.history.replaceState(null, '', `#search/${encodeURIComponent(param)}`);
-            } else if (type === 'category') {
+            } else if (type === 'category' && param && param !== 'ALL') {
                 window.history.replaceState(null, '', `#category/${encodeURIComponent(param)}`);
             } else {
-                window.history.replaceState(null, '', '#');
+                window.history.replaceState(null, '', cleanUrl);
             }
         }
     }
@@ -1056,12 +1057,13 @@ function initApp() {
 
         } else {
             document.body.classList.remove('is-searching');
-            if (headerRightActions) headerRightActions.style.display = 'flex';
             if (activeCategory !== 'ALL') {
                 filtered = filtered.filter(a => a.category === activeCategory);
                 if (categoryActionsGroup) categoryActionsGroup.style.display = 'inline-flex';
+                if (headerRightActions) headerRightActions.style.display = 'flex';
             } else {
                 if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
+                if (headerRightActions) headerRightActions.style.display = 'none';
             }
         }
 
