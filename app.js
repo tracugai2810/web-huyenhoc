@@ -1,12 +1,12 @@
 // ==========================================================================
-// KNOWLEDGE BASE LOGIC - CLOUD LOG SYNC & FIXED STICKY SEARCH (V17)
+// KNOWLEDGE BASE LOGIC - REAL-TIME CLOUD ACTIVITY LOG SYNC ENGINE (V18)
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
 
-    // Cloud REST Endpoint for System-Wide Activity Log Synchronization
-    const CLOUD_LOG_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app/logs.json';
+    // Shared Keyless Cloud Storage URL for Real-Time System-Wide Activity Logs
+    const SHARED_CLOUD_LOG_URL = 'https://jsonblob.com/api/jsonBlob/019fd5d1-17ad-7774-947f-3620d73210b9';
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -117,7 +117,7 @@ function initApp() {
     const closeActivityLogModalBtn = document.getElementById('closeActivityLogModalBtn');
     const cancelActivityLogModalBtn = document.getElementById('cancelActivityLogModalBtn');
 
-    // Activity Log Storage & Cloud Synchronization Functions
+    // Local Storage Activity Log Reader
     function getLocalActivityLogs() {
         try {
             return JSON.parse(localStorage.getItem('APP_ACTIVITY_LOGS') || '[]');
@@ -126,27 +126,31 @@ function initApp() {
         }
     }
 
+    // Synchronize Real-Time System-Wide Activity Logs from Cloud API
     async function syncLogsFromCloud() {
         try {
             if (typeof fetch === 'function') {
-                const res = await fetch(CLOUD_LOG_URL);
+                const res = await fetch(SHARED_CLOUD_LOG_URL, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
                 if (res.ok) {
-                    const data = await res.json();
-                    if (data) {
-                        const cloudLogs = Object.values(data).sort((a, b) => new Date(b.time) - new Date(a.time));
-                        localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs.slice(0, 80)));
+                    const cloudLogs = await res.json();
+                    if (Array.isArray(cloudLogs)) {
+                        localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                         updateActivityBadge();
                         return cloudLogs;
                     }
                 }
             }
         } catch (err) {
-            console.warn("Cloud log fetch failed, using local logs:", err);
+            console.warn("Cloud log fetch warning:", err);
         }
         return getLocalActivityLogs();
     }
 
-    function logActivity(actionText) {
+    // Log User Action & Push to Cloud for All Users
+    async function logActivity(actionText) {
         const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
         const logItem = {
             time: nowStr,
@@ -154,23 +158,42 @@ function initApp() {
             action: actionText
         };
 
-        let logs = getLocalActivityLogs();
-        logs.unshift(logItem);
-        if (logs.length > 80) logs = logs.slice(0, 80);
-        
+        let currentLogs = [];
         try {
-            localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(logs));
+            if (typeof fetch === 'function') {
+                const res = await fetch(SHARED_CLOUD_LOG_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) currentLogs = data;
+                }
+            }
+        } catch (e) {}
+
+        if (currentLogs.length === 0) {
+            currentLogs = getLocalActivityLogs();
+        }
+
+        currentLogs.unshift(logItem);
+        if (currentLogs.length > 100) currentLogs = currentLogs.slice(0, 100);
+
+        try {
+            localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(currentLogs));
         } catch (e) {}
         updateActivityBadge();
 
-        // Asynchronously Push Log to Cloud API for System-Wide Synchronization
-        if (typeof fetch === 'function') {
-            fetch(CLOUD_LOG_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(logItem)
-            }).catch(err => console.warn("Cloud log push warning:", err));
-        }
+        // Asynchronously Update Cloud Storage JSON Blob
+        try {
+            if (typeof fetch === 'function') {
+                fetch(SHARED_CLOUD_LOG_URL, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(currentLogs)
+                }).catch(err => console.warn("Cloud log PUT warning:", err));
+            }
+        } catch (err) {}
     }
 
     function updateActivityBadge() {
@@ -184,8 +207,8 @@ function initApp() {
     async function renderActivityLogs() {
         if (!activityLogBody) return;
         activityLogBody.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-                🔄 Đang đồng bộ nhật ký từ máy chủ...
+            <div style="text-align: center; padding: 24px 10px; color: var(--text-muted);">
+                🔄 Đang tải lịch sử thao tác từ máy chủ toàn hệ thống...
             </div>
         `;
 
@@ -349,7 +372,7 @@ function initApp() {
             if (nickVal) {
                 setUsername(nickVal);
                 localStorage.setItem('APP_AUTHENTICATED', 'true');
-                logActivity(`Xác thực thành công mật khẩu & Khởi tạo Nickname tác giả: "${nickVal}"`);
+                logActivity(`Xác thực mật khẩu & Đăng nhập Nickname tác giả mới: "${nickVal}"`);
                 if (mandatoryNickModal) mandatoryNickModal.classList.remove('active');
             }
         };
@@ -1573,7 +1596,7 @@ function initApp() {
         renderArticleList();
     }
 
-    // Initial background log sync from cloud
+    // Initial background cloud log sync
     syncLogsFromCloud();
 
     window.onhashchange = restoreStateFromHash;
