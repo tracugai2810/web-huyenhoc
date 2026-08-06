@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - STICKY SEARCH & MULTI-MATCH SNIPPETS (V5)
+// KNOWLEDGE BASE APPLICATION LOGIC - SEPARATE SNIPPET CLICKS & MOBILE FIT (V6)
 // ==========================================================================
 
 function initApp() {
@@ -251,15 +251,15 @@ function initApp() {
                   .trim();
     }
 
-    // Extract ALL matching message snippets for search cards (Screenshot 1 & 2 Feature!)
-    function getAllMatchedSnippets(articleContent, rawQuery, maxSnippets = 3) {
+    // Extract ALL matching message snippets with message index (Screenshot 1 Feature!)
+    function getAllMatchedSnippets(articleContent, rawQuery, maxSnippets = 4) {
         if (!articleContent || !rawQuery) return [];
 
         const msgs = parseMessagesFromContent(articleContent);
         const normQuery = normalizeSearchText(rawQuery);
         let snippets = [];
 
-        for (let m of msgs) {
+        msgs.forEach((m, msgIdx) => {
             const normBody = normalizeSearchText(m.bodyText);
             if (normBody.includes(normQuery)) {
                 const matchIdx = normBody.indexOf(normQuery);
@@ -270,12 +270,14 @@ function initApp() {
                 if (start > 0) snipText = '... ' + snipText;
                 if (end < m.bodyText.length) snipText = snipText + ' ...';
 
-                snippets.push(snipText);
-                if (snippets.length >= maxSnippets) break;
+                snippets.push({
+                    msgIdx: msgIdx,
+                    snippet: snipText
+                });
             }
-        }
+        });
 
-        return snippets;
+        return snippets.slice(0, maxSnippets);
     }
 
     // Render Navigation Sidebar
@@ -342,7 +344,7 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List with MULTI-SNIPPET SEARCH CARDS
+    // Render Article Grid List with INDIVIDUAL CLICKABLE MATCHED SNIPPETS
     function renderArticleList() {
         if (!articleGrid) return;
         
@@ -398,20 +400,8 @@ function initApp() {
             card.className = 'article-card';
             
             let displayTitle = escapeHtml(art.title || 'Chủ đề');
-
-            let snippetHtml = '';
             if (trimmedQuery) {
                 displayTitle = highlightText(displayTitle, trimmedQuery);
-                const matchedSnippets = getAllMatchedSnippets(art.content, trimmedQuery, 3);
-                
-                if (matchedSnippets.length > 0) {
-                    let itemsHtml = matchedSnippets.map(snip => `<div class="snippet-item">${highlightText(escapeHtml(snip), trimmedQuery)}</div>`).join('');
-                    snippetHtml = `<div class="card-matched-snippets">${itemsHtml}</div>`;
-                } else {
-                    snippetHtml = `<p class="card-snippet">${highlightText(escapeHtml(art.preview || "Nội dung..."), trimmedQuery)}</p>`;
-                }
-            } else {
-                snippetHtml = `<p class="card-snippet">${escapeHtml(art.preview || "Nội dung bài viết...")}</p>`;
             }
 
             card.innerHTML = `
@@ -421,8 +411,41 @@ function initApp() {
                     <span class="tag-msg">💬 ${art.msgCount || 0} luận giải</span>
                 </div>
                 <h3 class="card-heading">${displayTitle}</h3>
-                ${snippetHtml}
             `;
+
+            if (trimmedQuery) {
+                const matchedSnippets = getAllMatchedSnippets(art.content, trimmedQuery, 4);
+                if (matchedSnippets.length > 0) {
+                    const snippetsListDiv = document.createElement('div');
+                    snippetsListDiv.className = 'card-matched-snippets';
+
+                    matchedSnippets.forEach(snipObj => {
+                        const itemDiv = document.createElement('div');
+                        itemDiv.className = 'snippet-item';
+                        itemDiv.innerHTML = highlightText(escapeHtml(snipObj.snippet), trimmedQuery);
+                        
+                        // Screenshot 1 Feature: Click specific snippet item -> Jump directly to THAT exact message!
+                        itemDiv.onclick = (e) => {
+                            e.stopPropagation();
+                            openReaderView(art.id, searchQuery, snipObj.msgIdx);
+                        };
+
+                        snippetsListDiv.appendChild(itemDiv);
+                    });
+
+                    card.appendChild(snippetsListDiv);
+                } else {
+                    const p = document.createElement('p');
+                    p.className = 'card-snippet';
+                    p.innerHTML = highlightText(escapeHtml(art.preview || "Nội dung..."), trimmedQuery);
+                    card.appendChild(p);
+                }
+            } else {
+                const p = document.createElement('p');
+                p.className = 'card-snippet';
+                p.textContent = art.preview || "Nội dung bài viết...";
+                card.appendChild(p);
+            }
 
             card.onclick = () => openReaderView(art.id, searchQuery);
             articleGrid.appendChild(card);
@@ -500,8 +523,8 @@ function initApp() {
         return { text, images };
     }
 
-    // Reader View & Interactive Message Rendering
-    function openReaderView(id, activeSearchQuery = '') {
+    // Reader View & Interactive Message Rendering with Specific Target Msg Support
+    function openReaderView(id, activeSearchQuery = '', targetMsgIdx = null) {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
 
@@ -524,7 +547,18 @@ function initApp() {
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
 
-        if (activeSearchQuery && activeSearchQuery.trim()) {
+        // Scroll to specific target message if clicked from a snippet box (Screenshot 1 Feature!)
+        if (targetMsgIdx !== null && targetMsgIdx !== undefined) {
+            setTimeout(() => {
+                const targetEl = readerContent.querySelector(`[data-msg-idx="${targetMsgIdx}"]`);
+                if (targetEl) {
+                    targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetEl.classList.add('pulse-search-match');
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }, 120);
+        } else if (activeSearchQuery && activeSearchQuery.trim()) {
             setTimeout(() => {
                 const firstMatch = readerContent.querySelector('.active-search-match') || readerContent.querySelector('.pulse-search-match');
                 if (firstMatch) {
@@ -845,7 +879,7 @@ function initApp() {
         };
     }
 
-    // Submit Inline Quick Add Message
+    // Submit Inline Quick Add Message with Mobile Keyboard Dismiss (Feature 3)
     if (submitInlineMsgBtn) {
         submitInlineMsgBtn.onclick = () => {
             if (!currentArticleId) return;
@@ -887,6 +921,11 @@ function initApp() {
             if (inlineMsgTextarea) inlineMsgTextarea.value = '';
             pendingBase64Images = [];
             renderImagePreviews();
+
+            // Feature 3: Blur keyboard on mobile submit!
+            if (document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
 
             renderReaderMessages(article);
         };

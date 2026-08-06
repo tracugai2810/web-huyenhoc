@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - STICKY SEARCH & MOBILE-FIRST OPTIMIZED
+   PREMIUM LUXURY DESIGN SYSTEM - MOBILE OVERFLOW FIX & STICKY BACK TOOLBAR
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -89,6 +89,14 @@ body {
     font-size: 15px;
     min-height: 100vh;
     transition: background-color 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
+}
+
+/* Strict Mobile Word Break Fix (Screenshot 2 Fix!) */
+p, a, code, pre, span, div, h1, h2, h3, h4, .msg-body, .reader-body, .card-snippet, .snippet-item {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
 }
 
 /* Typography */
@@ -180,6 +188,7 @@ h1, h2, h3, h4 {
     padding: 8px 14px;
     min-height: 38px;
     border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .icon-btn {
@@ -455,7 +464,7 @@ h1, h2, h3, h4 {
 }
 .stat-pill strong { color: #FBBF24; }
 
-/* Sticky Search Section (Ghim thanh tìm kiếm khi cuộn - Screenshot 3 & 4 feature!) */
+/* Sticky Search Section */
 .search-section {
     position: sticky;
     top: 63px;
@@ -626,22 +635,28 @@ h1, h2, h3, h4 {
     overflow: hidden;
 }
 
-/* Multiple Matched Snippets Container (Screenshot 1 & 2 Feature!) */
+/* Separately Clickable Multiple Matched Snippets (Screenshot 1 Feature!) */
 .card-matched-snippets {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .snippet-item {
     font-size: 13px;
     color: var(--text-secondary);
     line-height: 1.45;
-    padding-left: 10px;
+    padding: 8px 12px;
     border-left: 3px solid #F59E0B;
     background-color: var(--bg-msg);
-    padding: 6px 10px;
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.snippet-item:hover {
+    background-color: var(--accent-gold-bg);
+    color: var(--text-primary);
+    transform: translateX(3px);
 }
 
 /* Empty Card */
@@ -654,13 +669,22 @@ h1, h2, h3, h4 {
 }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 
-/* Reader View */
+/* Sticky Reader Toolbar with Back Button (Ghim thanh quay lại khi cuộn - Feature 4) */
 .reader-toolbar {
+    position: sticky;
+    top: 63px;
+    z-index: 36;
+    background: var(--bg-header);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    transition: all 0.25s ease;
 }
 
 .reader-actions {
@@ -1132,6 +1156,12 @@ mark.active-search-match {
         top: 59px;
         z-index: 45;
         padding: 4px 0;
+    }
+
+    .reader-toolbar {
+        top: 59px;
+        z-index: 46;
+        padding: 6px 0;
     }
 
     .search-input-wrapper input {
