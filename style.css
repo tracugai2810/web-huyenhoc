@@ -847,20 +847,22 @@ body.is-searching #headerRightActions {
     top: 110px;
     z-index: 42;
     background-color: transparent;
-    padding: 6px 0;
-    margin: 4px 0 8px 0;
+    padding: 0;
+    margin: 0 0 6px 0;
     width: 100%;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+    align-self: stretch;
+    box-sizing: border-box;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, padding 0.15s ease, margin 0.15s ease;
 }
 
 .reader-article-title.is-stuck {
     background-color: var(--bg-card);
-    padding: 10px 24px;
-    margin-left: -24px;
-    margin-right: -24px;
+    padding: 8px 24px;
+    margin-left: -25px;
+    margin-right: -25px;
     margin-top: 0;
     margin-bottom: 0;
-    width: calc(100% + 48px);
+    width: calc(100% + 50px);
     border-bottom: 1px solid var(--border);
     box-shadow: 0 4px 14px -3px rgba(15, 23, 42, 0.08);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -1351,24 +1353,24 @@ mark.active-search-match {
         width: 100%;
     }
 
-    .reader-article-card { padding: 12px; gap: 10px; }
+    .reader-article-card { padding: 12px; gap: 8px; }
     .reader-article-title {
         font-size: 14.5px;
         font-weight: 700;
         line-height: 1.3;
         top: 106px;
-        padding: 4px 0;
-        margin: 2px 0 6px 0;
+        padding: 0;
+        margin: 0 0 4px 0;
         width: 100%;
     }
     .reader-article-title.is-stuck {
         background-color: var(--bg-card);
-        padding: 8px 12px;
-        margin-left: -12px;
-        margin-right: -12px;
+        padding: 6px 12px;
+        margin-left: -13px;
+        margin-right: -13px;
         margin-top: 0;
         margin-bottom: 0;
-        width: calc(100% + 24px);
+        width: calc(100% + 26px);
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
     .msg-block { padding: 12px; gap: 8px; }
