@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - EMBEDDED READER SEARCH & CUSTOM INPUT MODAL (V7)
+   PREMIUM LUXURY DESIGN SYSTEM - SINGLE STICKY SEARCH BAR WITH BACK BUTTON (V8)
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -466,22 +466,28 @@ h1, h2, h3, h4 {
 }
 .stat-pill strong { color: #FBBF24; }
 
-/* Sticky Search Section */
+/* SINGLE STICKY SEARCH SECTION (Ghim dính duy nhất 1 ô tìm kiếm toàn bộ website kèm nút Quay lại - Screenshot 2 Solution) */
 .search-section {
     position: sticky;
     top: 63px;
-    z-index: 35;
+    z-index: 45;
     background: var(--bg-app);
     padding: 6px 0;
     transition: all 0.25s ease;
 }
 
-.search-bar-container { position: relative; }
+.search-bar-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
 .search-input-wrapper {
     position: relative;
     display: flex;
     align-items: center;
+    flex: 1;
 }
 
 .search-icon {
@@ -699,61 +705,21 @@ body.is-searching .category-actions-group {
 }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 
-/* Sticky Reader Toolbar with Embedded Search Bar (Screenshot 1 Feature!) */
-.reader-toolbar {
-    position: sticky;
-    top: 63px;
-    z-index: 36;
-    background: var(--bg-header);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border);
+/* Reader Action Toolbar Row (Bên trong bài viết, không ghim dính khi cuộn) */
+.reader-toolbar-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
-    transition: all 0.25s ease;
+    padding: 4px 0;
 }
 
-.reader-sticky-left {
+.reader-meta-inline {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex: 1;
-    min-width: 240px;
-}
-
-.reader-search-input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    flex: 1;
-    max-width: 340px;
-}
-
-.reader-search-icon {
-    position: absolute;
-    left: 12px;
-    color: var(--text-muted);
-}
-
-.reader-search-input-wrapper input {
-    width: 100%;
-    padding: 8px 12px 8px 34px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    font-family: var(--font-sans);
-    color: var(--text-primary);
-    transition: all 0.2s ease;
-}
-.reader-search-input-wrapper input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .reader-actions {
@@ -770,13 +736,6 @@ body.is-searching .category-actions-group {
     display: flex;
     flex-direction: column;
     gap: 16px;
-}
-
-.reader-meta-tags {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
 }
 
 .meta-cat {
@@ -1227,34 +1186,15 @@ mark.active-search-match {
         padding: 4px 0;
     }
 
-    .reader-toolbar {
-        top: 59px;
-        z-index: 46;
-        padding: 6px 0;
-        gap: 8px;
-    }
-
-    .reader-sticky-left {
-        min-width: 0;
-        gap: 6px;
-    }
-
-    .reader-search-input-wrapper {
-        max-width: 100%;
-    }
-
-    .reader-search-input-wrapper input {
-        padding: 7px 10px 7px 28px;
-        font-size: 12px;
-    }
-    .reader-search-icon { left: 8px; width: 14px; height: 14px; }
-
     .search-input-wrapper input {
         padding: 11px 38px 11px 40px;
         font-size: 14px;
         border-radius: var(--radius-md);
     }
     .search-icon { left: 12px; }
+
+    .btn-back span { display: none; }
+    .btn-back { padding: 8px 10px; min-height: 38px; }
 
     .app-sidebar {
         position: fixed;

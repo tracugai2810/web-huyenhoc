@@ -96,9 +96,15 @@
                 </div>
             </section>
 
-            <!-- Sticky Search Section (Ghim thanh tìm kiếm khi cuộn trang danh sách) -->
-            <section class="search-section">
+            <!-- SINGLE STICKY SEARCH SECTION (DUY NHẤT 1 THANH TÌM KIẾM CỐ ĐỊNH KÈM NÚT QUAY LẠI) -->
+            <section class="search-section" id="globalStickySearchSection">
                 <div class="search-bar-container">
+                    <!-- Nút Quay Lại dính liền bên trái ô tìm kiếm khi đọc bài -->
+                    <button id="backToListBtnHeader" class="btn btn-back" style="display: none;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <span>Quay lại</span>
+                    </button>
+
                     <div class="search-input-wrapper">
                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
                         <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa trên toàn bộ website (Vd: Hóa Kỵ, Phá quân, Tử vi, Phong thủy)...">
@@ -151,35 +157,22 @@
 
             <!-- View 2: Article Reader & Interactive Add Message View -->
             <section id="readerView" class="view-panel">
-                <!-- Sticky Reader Toolbar with Embedded Search Input & Back Button (Ghim cố định khi cuộn) -->
-                <div class="reader-toolbar" id="readerStickyHeader">
-                    <div class="reader-sticky-left">
-                        <button id="backToListBtn" class="btn btn-back">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                            <span>Quay lại</span>
-                        </button>
-
-                        <!-- Embedded Search Input in Reader Sticky Toolbar -->
-                        <div class="reader-search-input-wrapper">
-                            <svg class="reader-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                            <input type="text" id="readerSearchInput" placeholder="Tìm kiếm từ khóa...">
-                        </div>
-                    </div>
-
-                    <div class="reader-actions">
-                        <button id="editTopicBtn" class="btn btn-outline-sm" title="Sửa tiêu đề chủ đề">✏️ Sửa</button>
-                        <button id="deleteArticleBtn" class="btn btn-danger-sm" title="Xóa chủ đề này">🗑️ Xóa</button>
-                        <button id="downloadMdBtn" class="btn btn-outline-sm" title="Tải file .md">📥 .md</button>
-                    </div>
-                </div>
-
-                <article class="reader-article-card">
-                    <div class="reader-meta-tags">
+                <!-- Action Buttons Row Inside Article Flow (Không bị ghim dính khi cuộn) -->
+                <div class="reader-toolbar-actions">
+                    <div class="reader-meta-inline">
                         <span class="meta-cat" id="readerCategory">Chuyên mục</span>
                         <span class="meta-thread" id="readerThreadBadge" style="display: none;">Luồng thảo luận</span>
                         <span class="meta-msgs" id="readerMsgCount">0 luận giải</span>
                     </div>
 
+                    <div class="reader-actions">
+                        <button id="editTopicBtn" class="btn btn-outline-sm" title="Sửa tiêu đề chủ đề">✏️ Sửa Chủ Đề</button>
+                        <button id="deleteArticleBtn" class="btn btn-danger-sm" title="Xóa chủ đề này">🗑️ Xóa Chủ Đề Này</button>
+                        <button id="downloadMdBtn" class="btn btn-outline-sm" title="Tải file .md">📥 Tải .md</button>
+                    </div>
+                </div>
+
+                <article class="reader-article-card">
                     <h1 class="reader-article-title" id="readerTitle">Tên Chủ Đề / Kênh</h1>
 
                     <div class="reader-sep"></div>
@@ -314,7 +307,7 @@
         </div>
     </div>
 
-    <!-- Modal 4: Custom Modern Centered Input Dialog (Loại bỏ hoàn toàn prompt phèn) -->
+    <!-- Modal 4: Custom Modern Centered Input Dialog -->
     <div class="modal" id="customInputModal">
         <div class="modal-backdrop" id="customInputBackdrop"></div>
         <div class="modal-card modal-sm confirm-card-centered">

@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - EMBEDDED SEARCH & CUSTOM INPUT MODALS (V8)
+// KNOWLEDGE BASE APPLICATION LOGIC - SINGLE GLOBAL STICKY SEARCH & BACK (V9)
 // ==========================================================================
 
 function initApp() {
@@ -38,8 +38,7 @@ function initApp() {
     const editCategoryBtn = document.getElementById('editCategoryBtn');
     const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
 
-    const backToListBtn = document.getElementById('backToListBtn');
-    const readerSearchInput = document.getElementById('readerSearchInput');
+    const backToListBtnHeader = document.getElementById('backToListBtnHeader');
     
     const readerCategory = document.getElementById('readerCategory');
     const readerThreadBadge = document.getElementById('readerThreadBadge');
@@ -89,7 +88,7 @@ function initApp() {
     const confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
     let onConfirmCallback = null;
 
-    // Custom Input Modal Elements (Loại bỏ hoàn toàn prompt của trình duyệt)
+    // Custom Input Modal Elements (Loại bỏ hoàn toàn prompt phèn của trình duyệt)
     const customInputModal = document.getElementById('customInputModal');
     const customInputBackdrop = document.getElementById('customInputBackdrop');
     const inputModalTitle = document.getElementById('inputModalTitle');
@@ -200,7 +199,6 @@ function initApp() {
         if (activeAuthorTag) activeAuthorTag.textContent = `👤 Người viết: ${currentUsername}`;
     }
 
-    // First time visit check (Screenshot 3 Fix!)
     if (!currentUsername) {
         setUsername("DBC");
         setTimeout(() => {
@@ -235,6 +233,7 @@ function initApp() {
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
         if (heroBanner && !searchQuery.trim()) heroBanner.style.display = 'block';
+        if (backToListBtnHeader) backToListBtnHeader.style.display = 'none';
     }
 
     // Theme Management (Light / Dark)
@@ -403,14 +402,12 @@ function initApp() {
         if (statSidebarArticles) statSidebarArticles.textContent = `Đã lưu ${allArticles.length} chủ đề`;
     }
 
-    // Select Category & AUTO-CLEAR SEARCH QUERY (Screenshot 4 Fix!)
+    // Select Category & AUTO-CLEAR SEARCH QUERY
     function selectCategory(cat) {
         activeCategory = cat;
         
-        // Auto-clear search when clicking any sidebar category!
         searchQuery = '';
         if (searchInput) searchInput.value = '';
-        if (readerSearchInput) readerSearchInput.value = '';
         if (clearSearchBtn) clearSearchBtn.style.display = 'none';
         document.body.classList.remove('is-searching');
 
@@ -426,7 +423,7 @@ function initApp() {
         };
     }
 
-    // Category Action Handlers with CUSTOM INPUT MODAL (Screenshot 2 Fix!)
+    // Category Action Handlers with CUSTOM INPUT MODAL
     if (editCategoryBtn) {
         editCategoryBtn.onclick = () => {
             if (activeCategory === 'ALL') return;
@@ -678,7 +675,6 @@ function initApp() {
         currentArticleId = id;
         if (readerCategory) readerCategory.textContent = article.category;
         if (readerTitle) readerTitle.textContent = article.title;
-        if (readerSearchInput) readerSearchInput.value = activeSearchQuery || '';
         
         if (readerThreadBadge) {
             if (article.isThread) {
@@ -694,6 +690,9 @@ function initApp() {
         if (heroBanner) heroBanner.style.display = 'none';
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
+
+        // Show back button on the single global sticky search header!
+        if (backToListBtnHeader) backToListBtnHeader.style.display = 'inline-flex';
 
         if (targetMsgIdx !== null && targetMsgIdx !== undefined) {
             setTimeout(() => {
@@ -1339,46 +1338,45 @@ function initApp() {
         if (searchInput) searchInput.focus();
     };
 
-    // Universal Global Search Input Logic (Synced with Reader Search Bar)
-    function handleSearchInputChange(val) {
-        searchQuery = val;
-        if (searchInput) searchInput.value = searchQuery;
-        if (readerSearchInput) readerSearchInput.value = searchQuery;
-
-        if (clearSearchBtn) {
-            clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
-        }
-        if (searchQuery.trim()) {
-            activeCategory = 'ALL';
-            renderNavigation();
-        }
-
-        if (currentArticleId && readerView && readerView.classList.contains('active')) {
-            const article = allArticles.find(a => a.id === currentArticleId);
-            if (article) {
-                renderReaderMessages(article, searchQuery);
-            }
-        } else {
-            renderArticleList();
-            showListView();
-        }
-    }
-
+    // SINGLE GLOBAL SEARCH INPUT LOGIC (Handles global search everywhere!)
     if (searchInput) {
-        searchInput.oninput = (e) => handleSearchInputChange(e.target.value);
-    }
-    if (readerSearchInput) {
-        readerSearchInput.oninput = (e) => handleSearchInputChange(e.target.value);
+        searchInput.oninput = (e) => {
+            searchQuery = e.target.value;
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+            }
+            if (searchQuery.trim()) {
+                activeCategory = 'ALL';
+                renderNavigation();
+            }
+
+            if (currentArticleId && readerView && readerView.classList.contains('active')) {
+                const article = allArticles.find(a => a.id === currentArticleId);
+                if (article) {
+                    renderReaderMessages(article, searchQuery);
+                }
+            } else {
+                renderArticleList();
+                showListView();
+            }
+        };
     }
 
     if (clearSearchBtn) {
         clearSearchBtn.onclick = () => {
-            handleSearchInputChange('');
-            renderArticleList();
+            if (searchInput) searchInput.value = '';
+            searchQuery = '';
+            clearSearchBtn.style.display = 'none';
+            if (currentArticleId && readerView && readerView.classList.contains('active')) {
+                const article = allArticles.find(a => a.id === currentArticleId);
+                if (article) renderReaderMessages(article, '');
+            } else {
+                renderArticleList();
+            }
         };
     }
 
-    if (backToListBtn) backToListBtn.onclick = showListView;
+    if (backToListBtnHeader) backToListBtnHeader.onclick = showListView;
 
     // Initial Render Execution
     renderNavigation();
