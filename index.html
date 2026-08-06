@@ -113,9 +113,15 @@
                     <div class="header-left">
                         <h2 id="currentCategoryTitle" class="section-title">Tất Cả Chủ Đề</h2>
                         <span class="badge-count" id="articleCountBadge">203 chủ đề</span>
+                        
+                        <!-- Category Action Buttons (Sửa & Xóa Chuyên Mục) -->
+                        <div class="category-actions-group" id="categoryActionsGroup" style="display: none;">
+                            <button id="editCategoryBtn" class="btn-icon-sm" title="Sửa tên chuyên mục này">✏️ Sửa chuyên mục</button>
+                            <button id="deleteCategoryBtn" class="btn-icon-sm" style="color: #EF4444;" title="Xóa chuyên mục này">🗑️ Xóa chuyên mục</button>
+                        </div>
                     </div>
 
-                    <div class="header-right-actions">
+                    <div class="header-right-actions" id="headerRightActions">
                         <button id="addChannelBtnCategory" class="btn btn-primary" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
                             ➕ Thêm Chủ Đề Mới
                         </button>
@@ -145,7 +151,7 @@
 
             <!-- View 2: Article Reader & Interactive Add Message View -->
             <section id="readerView" class="view-panel">
-                <!-- Sticky Reader Toolbar with Back Button (Ghim thanh quay lại khi cuộn) -->
+                <!-- Sticky Reader Toolbar with Back Button -->
                 <div class="reader-toolbar">
                     <button id="backToListBtn" class="btn btn-back">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -250,30 +256,34 @@
         </div>
     </div>
 
-    <!-- Modal 2: Add / Edit Topic Modal -->
+    <!-- Modal 2: Add / Edit Topic Modal (Tối giản theo yêu cầu) -->
     <div class="modal" id="topicModal">
         <div class="modal-backdrop" id="topicModalBackdrop"></div>
         <div class="modal-card modal-sm">
             <div class="modal-header">
-                <h3 id="topicModalHeaderTitle">➕ Thêm Chủ Đề (Kênh) Mới</h3>
+                <h3 id="topicModalHeaderTitle">➕ Thêm Chủ Đề Mới</h3>
                 <button class="icon-btn" id="closeTopicModalBtn">&times;</button>
             </div>
             <form id="topicForm" class="modal-body">
                 <input type="hidden" id="editTopicId">
 
+                <!-- Dynamic Read-only Category Badge or Dropdown -->
                 <div class="form-field">
-                    <label for="topicCategorySelect">Chuyên Mục:</label>
-                    <select id="topicCategorySelect" class="form-select">
+                    <label>Chuyên Mục:</label>
+                    <div id="topicCategoryBadge" class="cat-read-only-badge">📂 <strong id="topicCategoryBadgeName">Chuyên mục</strong></div>
+                    <select id="topicCategorySelect" class="form-select" style="display: none;">
                         <!-- Populated by JS -->
                     </select>
                 </div>
+
                 <div class="form-field">
                     <label for="newTopicTitleInput">Tên Chủ Đề / Kênh:</label>
                     <input type="text" id="newTopicTitleInput" placeholder="Vd: Luận gia đạo, Tuổi Dần Mộc..." required>
                 </div>
+
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelTopicModalBtn">Hủy bỏ</button>
-                    <button type="submit" class="btn btn-primary" id="saveTopicModalSubmitBtn">Tạo Chủ Đề & Đăng Bài</button>
+                    <button type="submit" class="btn btn-primary" id="saveTopicModalSubmitBtn">Tạo Chủ Đề</button>
                 </div>
             </form>
         </div>

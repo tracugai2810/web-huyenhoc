@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - SEPARATE SNIPPET CLICKS & MOBILE FIT (V6)
+// KNOWLEDGE BASE APPLICATION LOGIC - CATEGORY ACTIONS & STREAMLINED UX (V7)
 // ==========================================================================
 
 function initApp() {
@@ -49,6 +49,10 @@ function initApp() {
     const noResults = document.getElementById('noResults');
     const addChannelBtnCategory = document.getElementById('addChannelBtnCategory');
 
+    const categoryActionsGroup = document.getElementById('categoryActionsGroup');
+    const editCategoryBtn = document.getElementById('editCategoryBtn');
+    const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
+
     const backToListBtn = document.getElementById('backToListBtn');
     
     const readerCategory = document.getElementById('readerCategory');
@@ -83,6 +87,8 @@ function initApp() {
     const topicModalBackdrop = document.getElementById('topicModalBackdrop');
     const topicForm = document.getElementById('topicForm');
     const topicCategorySelect = document.getElementById('topicCategorySelect');
+    const topicCategoryBadge = document.getElementById('topicCategoryBadge');
+    const topicCategoryBadgeName = document.getElementById('topicCategoryBadgeName');
     const newTopicTitleInput = document.getElementById('newTopicTitleInput');
     const topicModalHeaderTitle = document.getElementById('topicModalHeaderTitle');
     const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
@@ -150,7 +156,7 @@ function initApp() {
     function showListView() {
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
-        if (heroBanner) heroBanner.style.display = 'block';
+        if (heroBanner && !searchQuery.trim()) heroBanner.style.display = 'block';
     }
 
     // Initialize Username Badge
@@ -251,7 +257,7 @@ function initApp() {
                   .trim();
     }
 
-    // Extract ALL matching message snippets with message index (Screenshot 1 Feature!)
+    // Extract ALL matching message snippets with message index
     function getAllMatchedSnippets(articleContent, rawQuery, maxSnippets = 4) {
         if (!articleContent || !rawQuery) return [];
 
@@ -344,7 +350,62 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List with INDIVIDUAL CLICKABLE MATCHED SNIPPETS
+    // Category Action Handlers (Sửa & Xóa Chuyên Mục)
+    if (editCategoryBtn) {
+        editCategoryBtn.onclick = () => {
+            if (activeCategory === 'ALL') return;
+            const newName = prompt(`Nhập tên mới cho chuyên mục "${activeCategory}":`, activeCategory);
+            if (!newName || !newName.trim() || newName.trim() === activeCategory) return;
+            
+            const trimmedNewName = newName.trim();
+
+            // Update articles category name
+            allArticles.forEach(art => {
+                if (art.category === activeCategory) {
+                    art.category = trimmedNewName;
+                    const parsedMsgs = parseMessagesFromContent(art.content);
+                    saveUpdatedMessagesToArticle(art, parsedMsgs);
+                }
+            });
+
+            // Update defaultCategories list
+            const idx = defaultCategories.indexOf(activeCategory);
+            if (idx >= 0) defaultCategories[idx] = trimmedNewName;
+            
+            refreshCategories();
+            selectCategory(trimmedNewName);
+            showCustomAlert("Thành công", `Đã đổi tên chuyên mục thành "${trimmedNewName}"!`);
+        };
+    }
+
+    if (deleteCategoryBtn) {
+        deleteCategoryBtn.onclick = () => {
+            if (activeCategory === 'ALL') return;
+            showCustomConfirm(
+                "🗑️ Xóa Chuyên Mục",
+                `Bạn có chắc chắn muốn xóa chuyên mục "${activeCategory}" và tất cả các chủ đề bên trong không?`,
+                () => {
+                    const articlesToDelete = allArticles.filter(a => a.category === activeCategory);
+                    articlesToDelete.forEach(art => {
+                        deletedArticleIds.push(art.id);
+                    });
+
+                    try {
+                        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
+                    } catch (e) {}
+
+                    const catIdx = defaultCategories.indexOf(activeCategory);
+                    if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
+
+                    allArticles = getCombinedArticles();
+                    refreshCategories();
+                    selectCategory('ALL');
+                }
+            );
+        };
+    }
+
+    // Render Article Grid List with Distraction-Free Search Mode & Category Actions
     function renderArticleList() {
         if (!articleGrid) return;
         
@@ -353,14 +414,23 @@ function initApp() {
         const normQuery = normalizeSearchText(trimmedQuery);
 
         if (normQuery !== '') {
+            document.body.classList.add('is-searching');
+            if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
+
             filtered = filtered.filter(a => {
                 const normTitle = normalizeSearchText(a.title);
                 const normCat = normalizeSearchText(a.category);
                 const normContent = normalizeSearchText(a.content);
                 return normTitle.includes(normQuery) || normCat.includes(normQuery) || normContent.includes(normQuery);
             });
-        } else if (activeCategory !== 'ALL') {
-            filtered = filtered.filter(a => a.category === activeCategory);
+        } else {
+            document.body.classList.remove('is-searching');
+            if (activeCategory !== 'ALL') {
+                filtered = filtered.filter(a => a.category === activeCategory);
+                if (categoryActionsGroup) categoryActionsGroup.style.display = 'inline-flex';
+            } else {
+                if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
+            }
         }
 
         if (sortMode === 'msgHigh') {
@@ -424,7 +494,6 @@ function initApp() {
                         itemDiv.className = 'snippet-item';
                         itemDiv.innerHTML = highlightText(escapeHtml(snipObj.snippet), trimmedQuery);
                         
-                        // Screenshot 1 Feature: Click specific snippet item -> Jump directly to THAT exact message!
                         itemDiv.onclick = (e) => {
                             e.stopPropagation();
                             openReaderView(art.id, searchQuery, snipObj.msgIdx);
@@ -523,7 +592,7 @@ function initApp() {
         return { text, images };
     }
 
-    // Reader View & Interactive Message Rendering with Specific Target Msg Support
+    // Reader View & Interactive Message Rendering
     function openReaderView(id, activeSearchQuery = '', targetMsgIdx = null) {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -547,7 +616,6 @@ function initApp() {
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
 
-        // Scroll to specific target message if clicked from a snippet box (Screenshot 1 Feature!)
         if (targetMsgIdx !== null && targetMsgIdx !== undefined) {
             setTimeout(() => {
                 const targetEl = readerContent.querySelector(`[data-msg-idx="${targetMsgIdx}"]`);
@@ -752,7 +820,7 @@ function initApp() {
                 };
             }
 
-            // Delete single message with MODERN CONFIRM MODAL
+            // Delete single message
             const deleteBtn = msgDiv.querySelector('.delete-msg-btn');
             if (deleteBtn) {
                 deleteBtn.onclick = () => {
@@ -879,7 +947,7 @@ function initApp() {
         };
     }
 
-    // Submit Inline Quick Add Message with Mobile Keyboard Dismiss (Feature 3)
+    // Submit Inline Quick Add Message
     if (submitInlineMsgBtn) {
         submitInlineMsgBtn.onclick = () => {
             if (!currentArticleId) return;
@@ -922,7 +990,6 @@ function initApp() {
             pendingBase64Images = [];
             renderImagePreviews();
 
-            // Feature 3: Blur keyboard on mobile submit!
             if (document.activeElement && typeof document.activeElement.blur === 'function') {
                 document.activeElement.blur();
             }
@@ -968,7 +1035,7 @@ function initApp() {
         };
     }
 
-    // Topic Modal
+    // Streamlined Topic Modal (Tự động mặc định chuyên mục đang mở & Đổi nút thành "Tạo Chủ Đề")
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         
@@ -976,18 +1043,33 @@ function initApp() {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề (Kênh)";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Lưu Chỉnh Sửa";
             if (editTopicId) editTopicId.value = articleToEdit.id;
-            if (topicCategorySelect) topicCategorySelect.value = articleToEdit.category;
+            
+            // Show category dropdown for editing
+            if (topicCategoryBadge) topicCategoryBadge.style.display = 'none';
+            if (topicCategorySelect) {
+                topicCategorySelect.style.display = 'block';
+                topicCategorySelect.value = articleToEdit.category;
+            }
             if (newTopicTitleInput) newTopicTitleInput.value = articleToEdit.title;
         } else {
-            if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề (Kênh) Mới";
-            if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề & Đăng Bài";
+            if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề Mới";
+            if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề";
             if (editTopicId) editTopicId.value = "";
             
             let targetCat = categories[0] || "";
             if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
                 targetCat = activeCategory;
             }
-            if (topicCategorySelect) topicCategorySelect.value = targetCat;
+
+            // Lock to active category badge for clean simple UI!
+            if (topicCategoryBadge && topicCategoryBadgeName) {
+                topicCategoryBadge.style.display = 'flex';
+                topicCategoryBadgeName.textContent = targetCat;
+            }
+            if (topicCategorySelect) {
+                topicCategorySelect.style.display = 'none';
+                topicCategorySelect.value = targetCat;
+            }
             if (newTopicTitleInput) newTopicTitleInput.value = "";
         }
 
@@ -1016,7 +1098,14 @@ function initApp() {
         topicForm.onsubmit = (e) => {
             e.preventDefault();
             const id = editTopicId ? editTopicId.value : "";
-            const cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
+            
+            let cat = "";
+            if (id) {
+                cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
+            } else {
+                cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : (topicCategorySelect ? topicCategorySelect.value.trim() : categories[0]);
+            }
+            
             const title = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
 
             if (!cat || !title) {

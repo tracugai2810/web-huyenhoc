@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - MOBILE OVERFLOW FIX & STICKY BACK TOOLBAR
+   PREMIUM LUXURY DESIGN SYSTEM - CATEGORY ACTIONS & STREAMLINED SEARCH MODE (V6)
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -92,7 +92,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Strict Mobile Word Break Fix (Screenshot 2 Fix!) */
+/* Strict Mobile Word Break Fix */
 p, a, code, pre, span, div, h1, h2, h3, h4, .msg-body, .reader-body, .card-snippet, .snippet-item {
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -411,6 +411,7 @@ h1, h2, h3, h4 {
     padding: 28px 20px;
     color: #FFFFFF;
     box-shadow: var(--shadow-md);
+    transition: all 0.3s ease;
 }
 
 .hero-content {
@@ -535,11 +536,30 @@ h1, h2, h3, h4 {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 .header-right-actions {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+.category-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cat-read-only-badge {
+    background-color: var(--primary-light);
+    color: var(--primary-text);
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
 }
 
 .section-title { font-size: 20px; font-weight: 800; }
@@ -560,6 +580,15 @@ h1, h2, h3, h4 {
     font-size: 13px;
     font-family: var(--font-sans);
     color: var(--text-primary);
+}
+
+/* Distraction-Free Search Mode (Hide extra clutters when searching on mobile & desktop) */
+body.is-searching .hero-section {
+    display: none !important;
+}
+
+body.is-searching .category-actions-group {
+    display: none !important;
 }
 
 /* Article Cards Grid */
@@ -635,7 +664,7 @@ h1, h2, h3, h4 {
     overflow: hidden;
 }
 
-/* Separately Clickable Multiple Matched Snippets (Screenshot 1 Feature!) */
+/* Separately Clickable Multiple Matched Snippets */
 .card-matched-snippets {
     display: flex;
     flex-direction: column;
@@ -669,7 +698,7 @@ h1, h2, h3, h4 {
 }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 
-/* Sticky Reader Toolbar with Back Button (Ghim thanh quay lại khi cuộn - Feature 4) */
+/* Sticky Reader Toolbar with Back Button */
 .reader-toolbar {
     position: sticky;
     top: 63px;
