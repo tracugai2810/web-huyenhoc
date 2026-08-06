@@ -1,45 +1,69 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - PREMIUM EDITION
+// KNOWLEDGE BASE APPLICATION LOGIC - BULLETPROOF EDITION V3
 // ==========================================================================
 
-document.addEventListener('DOMContentLoaded', () => {
+function initApp() {
+    console.log("Initializing Bách Khoa Huyền Học App...");
 
     // 1. Theme Management (Light / Dark)
     const currentTheme = localStorage.getItem('APP_THEME') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
-    updateThemeIcon(currentTheme);
-
+    
     const themeToggleBtn = document.getElementById('themeToggleBtn');
-    themeToggleBtn.onclick = () => {
-        const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('APP_THEME', theme);
-        updateThemeIcon(theme);
-    };
-
-    function updateThemeIcon(theme) {
-        if (themeToggleBtn) {
+    if (themeToggleBtn) {
+        themeToggleBtn.innerHTML = currentTheme === 'dark' ? '☀️' : '🌙';
+        themeToggleBtn.onclick = () => {
+            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('APP_THEME', theme);
             themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+        };
+    }
+
+    // 2. Data Initialization
+    let defaultArticles = window.INITIAL_ARTICLES || [];
+    let defaultCategories = window.INITIAL_CATEGORIES || [];
+
+    // Diagnostic Check: If data_store.js was not uploaded/loaded
+    if (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length === 0) {
+        console.error("WARNING: data_store.js is missing or empty! Please make sure data_store.js is uploaded to GitHub.");
+        const noResults = document.getElementById('noResults');
+        if (noResults) {
+            noResults.style.display = 'block';
+            noResults.innerHTML = `
+                <div class="empty-icon">⚠️</div>
+                <h3 style="color:#DC2626;">Chưa tìm thấy file dữ liệu data_store.js!</h3>
+                <p>Bạn hãy kiểm tra lại và upload file <b>data_store.js</b> lên GitHub cùng với <b>index.html</b> nhé.</p>
+            `;
         }
     }
 
-    // 2. Data State Initialization
-    let defaultArticles = window.INITIAL_ARTICLES || [];
+    let customArticles = [];
+    let deletedArticleIds = [];
 
-    let customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
-    let deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
+    try {
+        customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
+    } catch (e) {
+        console.warn('Cannot parse CUSTOM_ARTICLES from localStorage:', e);
+    }
+
+    try {
+        deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
+    } catch (e) {
+        console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
+    }
 
     function getCombinedArticles() {
         let articlesMap = new Map();
         
         defaultArticles.forEach(art => {
-            if (!deletedArticleIds.includes(art.id)) {
+            if (art && art.id && !deletedArticleIds.includes(art.id)) {
                 articlesMap.set(art.id, art);
             }
         });
 
         customArticles.forEach(art => {
-            if (!deletedArticleIds.includes(art.id)) {
+            if (art && art.id && !deletedArticleIds.includes(art.id)) {
                 articlesMap.set(art.id, art);
             }
         });
@@ -51,9 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let categories = [];
 
     function refreshCategories() {
-        let catSet = new Set(window.INITIAL_CATEGORIES || []);
+        let catSet = new Set(defaultCategories);
         allArticles.forEach(a => {
-            if (a.category) catSet.add(a.category);
+            if (a && a.category) catSet.add(a.category);
         });
         categories = Array.from(catSet).sort();
     }
@@ -121,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formContent = document.getElementById('formContent');
     const categorySuggestions = document.getElementById('categorySuggestions');
 
-    // Bottom Nav Buttons
+    // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navCategoriesBtn = document.getElementById('navCategoriesBtn');
     const navAddBtn = document.getElementById('navAddBtn');
@@ -129,63 +153,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Render Navigation Bars
     function renderNavigation(filterFilterText = '') {
-        sidebarCategoryList.innerHTML = '';
-        
         let filteredCats = categories;
         if (filterFilterText.trim()) {
             const f = filterFilterText.toLowerCase();
             filteredCats = categories.filter(c => c.toLowerCase().includes(f));
         }
 
-        // "Tất cả" Sidebar Item
-        const allItem = document.createElement('div');
-        allItem.className = `sidebar-item ${activeCategory === 'ALL' ? 'active' : ''}`;
-        allItem.innerHTML = `
-            <span>🌐 Tất cả chuyên mục</span>
-            <span class="sidebar-item-count">${allArticles.length}</span>
-        `;
-        allItem.onclick = () => selectCategory('ALL');
-        sidebarCategoryList.appendChild(allItem);
-
-        filteredCats.forEach(cat => {
-            const count = allArticles.filter(a => a.category === cat).length;
-            const item = document.createElement('div');
-            item.className = `sidebar-item ${activeCategory === cat ? 'active' : ''}`;
-            item.innerHTML = `
-                <span>📂 ${escapeHtml(cat)}</span>
-                <span class="sidebar-item-count">${count}</span>
+        if (sidebarCategoryList) {
+            sidebarCategoryList.innerHTML = '';
+            
+            const allItem = document.createElement('div');
+            allItem.className = `sidebar-item ${activeCategory === 'ALL' ? 'active' : ''}`;
+            allItem.innerHTML = `
+                <span>🌐 Tất cả chuyên mục</span>
+                <span class="sidebar-item-count">${allArticles.length}</span>
             `;
-            item.onclick = () => selectCategory(cat);
-            sidebarCategoryList.appendChild(item);
-        });
+            allItem.onclick = () => selectCategory('ALL');
+            sidebarCategoryList.appendChild(allItem);
+
+            filteredCats.forEach(cat => {
+                const count = allArticles.filter(a => a.category === cat).length;
+                const item = document.createElement('div');
+                item.className = `sidebar-item ${activeCategory === cat ? 'active' : ''}`;
+                item.innerHTML = `
+                    <span>📂 ${escapeHtml(cat)}</span>
+                    <span class="sidebar-item-count">${count}</span>
+                `;
+                item.onclick = () => selectCategory(cat);
+                sidebarCategoryList.appendChild(item);
+            });
+        }
 
         // Horizontal Category Pills
-        categoryPills.innerHTML = '';
-        const allPill = document.createElement('button');
-        allPill.className = `pill ${activeCategory === 'ALL' ? 'active' : ''}`;
-        allPill.textContent = '🌐 Tất cả';
-        allPill.onclick = () => selectCategory('ALL');
-        categoryPills.appendChild(allPill);
+        if (categoryPills) {
+            categoryPills.innerHTML = '';
+            const allPill = document.createElement('button');
+            allPill.className = `pill ${activeCategory === 'ALL' ? 'active' : ''}`;
+            allPill.textContent = '🌐 Tất cả';
+            allPill.onclick = () => selectCategory('ALL');
+            categoryPills.appendChild(allPill);
 
-        categories.forEach(cat => {
-            const pill = document.createElement('button');
-            pill.className = `pill ${activeCategory === cat ? 'active' : ''}`;
-            pill.textContent = cat;
-            pill.onclick = () => selectCategory(cat);
-            categoryPills.appendChild(pill);
-        });
+            categories.forEach(cat => {
+                const pill = document.createElement('button');
+                pill.className = `pill ${activeCategory === cat ? 'active' : ''}`;
+                pill.textContent = cat;
+                pill.onclick = () => selectCategory(cat);
+                categoryPills.appendChild(pill);
+            });
+        }
 
         // Modal Datalist
-        categorySuggestions.innerHTML = '';
-        categories.forEach(cat => {
-            const opt = document.createElement('option');
-            opt.value = cat;
-            categorySuggestions.appendChild(opt);
-        });
+        if (categorySuggestions) {
+            categorySuggestions.innerHTML = '';
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                categorySuggestions.appendChild(opt);
+            });
+        }
 
         // Hero Stats
-        statArticlesCount.textContent = allArticles.length;
-        statCategoryCount.textContent = categories.length;
+        if (statArticlesCount) statArticlesCount.textContent = allArticles.length;
+        if (statCategoryCount) statCategoryCount.textContent = categories.length;
     }
 
     function selectCategory(cat) {
@@ -196,12 +225,16 @@ document.addEventListener('DOMContentLoaded', () => {
         showListView();
     }
 
-    sidebarFilterInput.oninput = (e) => {
-        renderNavigation(e.target.value);
-    };
+    if (sidebarFilterInput) {
+        sidebarFilterInput.oninput = (e) => {
+            renderNavigation(e.target.value);
+        };
+    }
 
     // 4. Render Article List
     function renderArticleList() {
+        if (!articleGrid) return;
+        
         let filtered = allArticles;
 
         // Category Filter
@@ -224,25 +257,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (sortMode === 'msgHigh') {
             filtered.sort((a, b) => (b.msgCount || 0) - (a.msgCount || 0));
         } else if (sortMode === 'titleAz') {
-            filtered.sort((a, b) => a.title.localeCompare(b.title));
+            filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         }
 
-        currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Bài Viết' : `Chuyên mục: ${activeCategory}`;
-        articleCountBadge.textContent = `${filtered.length} bài`;
+        if (currentCategoryTitle) {
+            currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Bài Viết' : `Chuyên mục: ${activeCategory}`;
+        }
+        if (articleCountBadge) {
+            articleCountBadge.textContent = `${filtered.length} bài`;
+        }
 
         articleGrid.innerHTML = '';
 
         if (filtered.length === 0) {
-            noResults.style.display = 'block';
+            if (noResults && (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length > 0)) {
+                noResults.style.display = 'block';
+                noResults.innerHTML = `
+                    <div class="empty-icon">🔍</div>
+                    <h3>Không tìm thấy nội dung phù hợp</h3>
+                    <p>Hãy thử tìm lại với từ khóa khác hoặc chuyển sang chuyên mục khác.</p>
+                `;
+            }
             return;
         }
-        noResults.style.display = 'none';
+        if (noResults) noResults.style.display = 'none';
 
         filtered.forEach(art => {
             const card = document.createElement('div');
             card.className = 'article-card';
             
-            let displayTitle = escapeHtml(art.title);
+            let displayTitle = escapeHtml(art.title || 'Bài viết');
             let displaySnippet = escapeHtml(art.preview || "Nội dung bài viết...");
 
             if (searchQuery) {
@@ -265,10 +309,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    sortSelect.onchange = (e) => {
-        sortMode = e.target.value;
-        renderArticleList();
-    };
+    if (sortSelect) {
+        sortSelect.onchange = (e) => {
+            sortMode = e.target.value;
+            renderArticleList();
+        };
+    }
 
     function highlightText(text, query) {
         if (!query) return text;
@@ -286,65 +332,78 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!article) return;
 
         currentArticleId = id;
-        readerCategory.textContent = article.category;
-        readerTitle.textContent = article.title;
-        readerMsgCount.textContent = `💬 ${article.msgCount || 0} tin nhắn`;
+        if (readerCategory) readerCategory.textContent = article.category;
+        if (readerTitle) readerTitle.textContent = article.title;
+        if (readerMsgCount) readerMsgCount.textContent = `💬 ${article.msgCount || 0} tin nhắn`;
 
-        if (article.isThread) {
-            readerThreadBadge.style.display = 'inline-block';
-            readerThreadBadge.textContent = `Thread thuộc #${article.parentChannel || 'Kênh'}`;
-        } else {
-            readerThreadBadge.style.display = 'none';
+        if (readerThreadBadge) {
+            if (article.isThread) {
+                readerThreadBadge.style.display = 'inline-block';
+                readerThreadBadge.textContent = `Thread thuộc #${article.parentChannel || 'Kênh'}`;
+            } else {
+                readerThreadBadge.style.display = 'none';
+            }
         }
 
         let htmlContent = "";
-        if (window.marked && typeof window.marked.parse === 'function') {
-            htmlContent = window.marked.parse(article.content);
-        } else {
-            htmlContent = escapeHtml(article.content).replace(/\n/g, '<br>');
+        try {
+            if (window.marked && typeof window.marked.parse === 'function') {
+                htmlContent = window.marked.parse(article.content || '');
+            } else {
+                htmlContent = escapeHtml(article.content || '').replace(/\n/g, '<br>');
+            }
+        } catch (err) {
+            console.error('Markdown parse error:', err);
+            htmlContent = escapeHtml(article.content || '').replace(/\n/g, '<br>');
         }
 
-        readerContent.innerHTML = htmlContent;
+        if (readerContent) readerContent.innerHTML = htmlContent;
 
         // Switch to reader panel
-        heroBanner.style.display = 'none';
-        listView.classList.remove('active');
-        readerView.classList.add('active');
+        if (heroBanner) heroBanner.style.display = 'none';
+        if (listView) listView.classList.remove('active');
+        if (readerView) readerView.classList.add('active');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function showListView() {
-        readerView.classList.remove('active');
-        listView.classList.add('active');
-        heroBanner.style.display = 'block';
+        if (readerView) readerView.classList.remove('active');
+        if (listView) listView.classList.add('active');
+        if (heroBanner) heroBanner.style.display = 'block';
     }
 
     // Font Controls
-    fontDecBtn.onclick = () => {
-        if (readerFontSize > 13) {
-            readerFontSize -= 1;
-            readerContent.style.fontSize = `${readerFontSize}px`;
-        }
-    };
-    fontIncBtn.onclick = () => {
-        if (readerFontSize < 24) {
-            readerFontSize += 1;
-            readerContent.style.fontSize = `${readerFontSize}px`;
-        }
-    };
-    fontResetBtn.onclick = () => {
-        readerFontSize = 16;
-        readerContent.style.fontSize = '16px';
-    };
+    if (fontDecBtn) {
+        fontDecBtn.onclick = () => {
+            if (readerFontSize > 13) {
+                readerFontSize -= 1;
+                if (readerContent) readerContent.style.fontSize = `${readerFontSize}px`;
+            }
+        };
+    }
+    if (fontIncBtn) {
+        fontIncBtn.onclick = () => {
+            if (readerFontSize < 24) {
+                readerFontSize += 1;
+                if (readerContent) readerContent.style.fontSize = `${readerFontSize}px`;
+            }
+        };
+    }
+    if (fontResetBtn) {
+        fontResetBtn.onclick = () => {
+            readerFontSize = 16;
+            if (readerContent) readerContent.style.fontSize = '16px';
+        };
+    }
 
     // 6. Modal Add / Edit Operations
     function openAddModal() {
-        modalTitle.textContent = "➕ Thêm Bài Viết Mới";
-        editArticleId.value = "";
-        formCategory.value = activeCategory !== 'ALL' ? activeCategory : "";
-        formTitle.value = "";
-        formContent.value = "";
-        articleModal.classList.add('active');
+        if (modalTitle) modalTitle.textContent = "➕ Thêm Bài Viết Mới";
+        if (editArticleId) editArticleId.value = "";
+        if (formCategory) formCategory.value = activeCategory !== 'ALL' ? activeCategory : "";
+        if (formTitle) formTitle.value = "";
+        if (formContent) formContent.value = "";
+        if (articleModal) articleModal.classList.add('active');
     }
 
     function openEditModal() {
@@ -352,175 +411,199 @@ document.addEventListener('DOMContentLoaded', () => {
         const article = allArticles.find(a => a.id === currentArticleId);
         if (!article) return;
 
-        modalTitle.textContent = "✏️ Chỉnh Sửa Bài Viết";
-        editArticleId.value = article.id;
-        formCategory.value = article.category;
-        formTitle.value = article.title;
-        formContent.value = article.content;
-        articleModal.classList.add('active');
+        if (modalTitle) modalTitle.textContent = "✏️ Chỉnh Sửa Bài Viết";
+        if (editArticleId) editArticleId.value = article.id;
+        if (formCategory) formCategory.value = article.category;
+        if (formTitle) formTitle.value = article.title;
+        if (formContent) formContent.value = article.content;
+        if (articleModal) articleModal.classList.add('active');
     }
 
     function closeModal() {
-        articleModal.classList.remove('active');
+        if (articleModal) articleModal.classList.remove('active');
     }
 
-    articleForm.onsubmit = (e) => {
-        e.preventDefault();
-        const id = editArticleId.value;
-        const cat = formCategory.value.trim();
-        const title = formTitle.value.trim();
-        const content = formContent.value.trim();
+    if (articleForm) {
+        articleForm.onsubmit = (e) => {
+            e.preventDefault();
+            const id = editArticleId ? editArticleId.value : "";
+            const cat = formCategory ? formCategory.value.trim() : "";
+            const title = formTitle ? formTitle.value.trim() : "";
+            const content = formContent ? formContent.value.trim() : "";
 
-        if (!cat || !title || !content) return;
+            if (!cat || !title || !content) return;
 
-        if (id) {
-            let index = customArticles.findIndex(a => a.id === id);
-            let targetArt = allArticles.find(a => a.id === id);
-            
-            const updatedArt = {
-                ...targetArt,
-                id: id,
-                category: cat,
-                title: title,
-                channel: title,
-                content: content,
-                preview: content.substring(0, 150)
-            };
+            if (id) {
+                let index = customArticles.findIndex(a => a.id === id);
+                let targetArt = allArticles.find(a => a.id === id);
+                
+                const updatedArt = {
+                    ...targetArt,
+                    id: id,
+                    category: cat,
+                    title: title,
+                    channel: title,
+                    content: content,
+                    preview: content.substring(0, 150)
+                };
 
-            if (index >= 0) {
-                customArticles[index] = updatedArt;
+                if (index >= 0) {
+                    customArticles[index] = updatedArt;
+                } else {
+                    customArticles.push(updatedArt);
+                }
             } else {
-                customArticles.push(updatedArt);
+                const newId = `custom_${Date.now()}`;
+                const newArt = {
+                    id: newId,
+                    category: cat,
+                    channel: title,
+                    title: title,
+                    isThread: false,
+                    msgCount: 1,
+                    preview: content.substring(0, 150),
+                    content: `# ${cat} / #${title}\n\n${content}`
+                };
+                customArticles.push(newArt);
+                currentArticleId = newId;
             }
-        } else {
-            const newId = `custom_${Date.now()}`;
-            const newArt = {
-                id: newId,
-                category: cat,
-                channel: title,
-                title: title,
-                isThread: false,
-                msgCount: 1,
-                preview: content.substring(0, 150),
-                content: `# ${cat} / #${title}\n\n${content}`
-            };
-            customArticles.push(newArt);
-            currentArticleId = newId;
-        }
 
-        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-        
-        allArticles = getCombinedArticles();
-        refreshCategories();
-        renderNavigation();
-        renderArticleList();
-        closeModal();
-
-        if (currentArticleId) {
-            openReaderView(currentArticleId);
-        }
-    };
-
-    deleteArticleBtn.onclick = () => {
-        if (!currentArticleId) return;
-        if (confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) {
-            deletedArticleIds.push(currentArticleId);
-            localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
+            try {
+                localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+            } catch (err) {
+                console.error('Cannot save to localStorage:', err);
+            }
             
             allArticles = getCombinedArticles();
             refreshCategories();
             renderNavigation();
             renderArticleList();
-            showListView();
-        }
-    };
+            closeModal();
 
-    downloadMdBtn.onclick = () => {
-        if (!currentArticleId) return;
-        const article = allArticles.find(a => a.id === currentArticleId);
-        if (!article) return;
-
-        const blob = new Blob([article.content], { type: 'text/markdown;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${article.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.md`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
-
-    exportBackupBtn.onclick = () => {
-        const backupData = {
-            exportDate: new Date().toISOString(),
-            articles: allArticles,
-            customArticles: customArticles
+            if (currentArticleId) {
+                openReaderView(currentArticleId);
+            }
         };
-        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Backup_Huyen_Hoc_${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    };
+    }
+
+    if (deleteArticleBtn) {
+        deleteArticleBtn.onclick = () => {
+            if (!currentArticleId) return;
+            if (confirm("Bạn có chắc chắn muốn xóa bài viết này không?")) {
+                deletedArticleIds.push(currentArticleId);
+                try {
+                    localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
+                } catch (e) {}
+                
+                allArticles = getCombinedArticles();
+                refreshCategories();
+                renderNavigation();
+                renderArticleList();
+                showListView();
+            }
+        };
+    }
+
+    if (downloadMdBtn) {
+        downloadMdBtn.onclick = () => {
+            if (!currentArticleId) return;
+            const article = allArticles.find(a => a.id === currentArticleId);
+            if (!article) return;
+
+            const blob = new Blob([article.content], { type: 'text/markdown;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${(article.title || 'bai_viet').replace(/[^a-zA-Z0-9_-]/g, '_')}.md`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    }
+
+    if (exportBackupBtn) {
+        exportBackupBtn.onclick = () => {
+            const backupData = {
+                exportDate: new Date().toISOString(),
+                articles: allArticles,
+                customArticles: customArticles
+            };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Backup_Huyen_Hoc_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+    }
 
     // 7. Mobile Drawer & Navigation Controls
     function openMobileSidebar() {
-        appSidebar.classList.add('open');
-        sidebarOverlay.classList.add('active');
+        if (appSidebar) appSidebar.classList.add('open');
+        if (sidebarOverlay) sidebarOverlay.classList.add('active');
     }
     function closeMobileSidebar() {
-        appSidebar.classList.remove('open');
-        sidebarOverlay.classList.remove('active');
+        if (appSidebar) appSidebar.classList.remove('open');
+        if (sidebarOverlay) sidebarOverlay.classList.remove('active');
     }
 
-    mobileMenuBtn.onclick = openMobileSidebar;
-    closeSidebarBtn.onclick = closeMobileSidebar;
-    sidebarOverlay.onclick = closeMobileSidebar;
+    if (mobileMenuBtn) mobileMenuBtn.onclick = openMobileSidebar;
+    if (closeSidebarBtn) closeSidebarBtn.onclick = closeMobileSidebar;
+    if (sidebarOverlay) sidebarOverlay.onclick = closeMobileSidebar;
 
-    // Mobile Bottom Nav
+    // Mobile Bottom Nav Buttons
     if (navHomeBtn) navHomeBtn.onclick = () => selectCategory('ALL');
     if (navCategoriesBtn) navCategoriesBtn.onclick = openMobileSidebar;
     if (navAddBtn) navAddBtn.onclick = openAddModal;
     if (navSearchFocusBtn) navSearchFocusBtn.onclick = () => {
         showListView();
-        searchInput.focus();
+        if (searchInput) searchInput.focus();
     };
 
     // Search Input Logic
-    searchInput.oninput = (e) => {
-        searchQuery = e.target.value;
-        if (searchQuery) {
-            clearSearchBtn.style.display = 'block';
-        } else {
+    if (searchInput) {
+        searchInput.oninput = (e) => {
+            searchQuery = e.target.value;
+            if (clearSearchBtn) {
+                clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+            }
+            renderArticleList();
+            showListView();
+        };
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.onclick = () => {
+            if (searchInput) searchInput.value = '';
+            searchQuery = '';
             clearSearchBtn.style.display = 'none';
-        }
-        renderArticleList();
-        showListView();
-    };
+            renderArticleList();
+        };
+    }
 
-    clearSearchBtn.onclick = () => {
-        searchInput.value = '';
-        searchQuery = '';
-        clearSearchBtn.style.display = 'none';
-        renderArticleList();
-    };
+    if (backToListBtn) backToListBtn.onclick = showListView;
+    if (addArticleBtn) addArticleBtn.onclick = openAddModal;
+    if (editArticleBtn) editArticleBtn.onclick = openEditModal;
+    if (closeModalBtn) closeModalBtn.onclick = closeModal;
+    if (cancelModalBtn) cancelModalBtn.onclick = closeModal;
+    if (modalBackdrop) modalBackdrop.onclick = closeModal;
 
-    backToListBtn.onclick = showListView;
-    addArticleBtn.onclick = openAddModal;
-    editArticleBtn.onclick = openEditModal;
-    closeModalBtn.onclick = closeModal;
-    cancelModalBtn.onclick = closeModal;
-    modalBackdrop.onclick = closeModal;
-
-    // Initial Load
+    // Initial Render Execution
     renderNavigation();
     renderArticleList();
-});
+    console.log("App initialization completed. Articles loaded:", allArticles.length);
+}
+
+// Ensure execution regardless of DOMReady event timing
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(initApp, 1);
+} else {
+    document.addEventListener('DOMContentLoaded', initApp);
+}
 
 function escapeHtml(str) {
     if (!str) return '';
