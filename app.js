@@ -1,15 +1,16 @@
 // ==========================================================================
-// BÁCH KHOA HUYỀN HỌC - HANOI TIMEZONE (GMT+7) & REAL-TIME SYNC ENGINE (V22)
+// BÁCH KHOA HUYỀN HỌC - FIREBASE CLOUD MASTER SINGLE SOURCE OF TRUTH (V24)
 // ==========================================================================
 
 function initApp() {
-    console.log("Initializing Bách Khoa Huyền Học App with Hanoi Timezone & Real-Time Sync...");
+    console.log("Initializing Bách Khoa Huyền Học App with Firebase Cloud Master Source of Truth...");
 
     // Official User's Google Firebase Cloud Database REST Endpoints
     const FIREBASE_BASE_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app';
     const FIREBASE_LOGS_URL = `${FIREBASE_BASE_URL}/logs.json`;
     const FIREBASE_ARTICLES_URL = `${FIREBASE_BASE_URL}/custom_articles.json`;
     const FIREBASE_CATEGORIES_URL = `${FIREBASE_BASE_URL}/custom_categories.json`;
+    const FIREBASE_DELETED_URL = `${FIREBASE_BASE_URL}/deleted_article_ids.json`;
 
     // Hanoi Timezone (GMT+7) Formatter
     function getVietnamTimeString() {
@@ -479,42 +480,92 @@ function initApp() {
     let customCategories = [];
     let deletedArticleIds = [];
 
-    try {
-        customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
-    } catch (e) {}
+    // Unified Master Realtime Cloud Synchronization Function across All Devices!
+    async function syncAllFromCloud() {
+        if (typeof fetch !== 'function') return;
 
-    try {
-        customCategories = JSON.parse(localStorage.getItem('CUSTOM_CATEGORIES') || '[]');
-    } catch (e) {}
-
-    try {
-        deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
-    } catch (e) {}
-
-    // Synchronize Custom Categories with Google Firebase Cloud
-    async function syncCategoriesFromCloud() {
         try {
-            if (typeof fetch === 'function') {
-                const res = await fetch(FIREBASE_CATEGORIES_URL);
-                if (res.ok) {
-                    const data = await res.json();
-                    let cloudCats = [];
-                    if (Array.isArray(data)) cloudCats = data;
-                    else if (data && typeof data === 'object') cloudCats = Object.values(data);
+            const [artRes, catRes, delRes, logRes] = await Promise.all([
+                fetch(FIREBASE_ARTICLES_URL).catch(() => null),
+                fetch(FIREBASE_CATEGORIES_URL).catch(() => null),
+                fetch(FIREBASE_DELETED_URL).catch(() => null),
+                fetch(FIREBASE_LOGS_URL).catch(() => null)
+            ]);
 
-                    if (cloudCats.length > 0) {
-                        let catSet = new Set([...customCategories, ...cloudCats]);
-                        customCategories = Array.from(catSet);
-                        localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
-                        refreshCategories();
-                        renderNavigation();
-                    }
+            let hasChanged = false;
+
+            // 1. Sync Deleted IDs
+            if (delRes && delRes.ok) {
+                const delData = await delRes.json();
+                let cloudDel = [];
+                if (Array.isArray(delData)) cloudDel = delData;
+                else if (delData && typeof delData === 'object') cloudDel = Object.values(delData);
+
+                if (JSON.stringify(cloudDel) !== JSON.stringify(deletedArticleIds)) {
+                    deletedArticleIds = cloudDel;
+                    localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
+                    hasChanged = true;
                 }
             }
-        } catch (e) {}
+
+            // 2. Sync Categories
+            if (catRes && catRes.ok) {
+                const catData = await catRes.json();
+                let cloudCats = [];
+                if (Array.isArray(catData)) cloudCats = catData;
+                else if (catData && typeof catData === 'object') cloudCats = Object.values(catData);
+
+                if (JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
+                    customCategories = cloudCats;
+                    localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
+                    hasChanged = true;
+                }
+            }
+
+            // 3. Sync Custom Articles
+            if (artRes && artRes.ok) {
+                const artData = await artRes.json();
+                let cloudArts = [];
+                if (Array.isArray(artData)) cloudArts = artData;
+                else if (artData && typeof artData === 'object') cloudArts = Object.values(artData);
+
+                if (JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
+                    customArticles = cloudArts;
+                    localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
+                    hasChanged = true;
+                }
+            }
+
+            // 4. Sync Logs
+            if (logRes && logRes.ok) {
+                const logData = await logRes.json();
+                let cloudLogs = [];
+                if (Array.isArray(logData)) cloudLogs = logData;
+                else if (logData && typeof logData === 'object') cloudLogs = Object.values(logData);
+                cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
+                updateActivityBadge();
+            }
+
+            // Re-render UI if Cloud state changed!
+            if (hasChanged) {
+                allArticles = getCombinedArticles();
+                refreshCategories();
+                renderNavigation();
+                renderArticleList();
+
+                if (currentArticleId) {
+                    const activeArt = allArticles.find(a => a.id === currentArticleId);
+                    if (activeArt) renderReaderMessages(activeArt);
+                }
+            }
+        } catch (err) {
+            console.warn("Unified Cloud sync warning:", err);
+        }
     }
 
     function saveCategoriesToCloud(catsList) {
+        customCategories = catsList;
         localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(catsList));
         if (typeof fetch === 'function') {
             fetch(FIREBASE_CATEGORIES_URL, {
@@ -525,49 +576,20 @@ function initApp() {
         }
     }
 
-    // Synchronize Shared Custom Topics & Messages across ALL users from Google Firebase Cloud Database!
-    async function syncCustomArticlesFromCloud() {
-        try {
-            if (typeof fetch === 'function') {
-                const res = await fetch(FIREBASE_ARTICLES_URL);
-                if (res.ok) {
-                    const data = await res.json();
-                    let cloudArticles = [];
-                    if (Array.isArray(data)) cloudArticles = data;
-                    else if (data && typeof data === 'object') cloudArticles = Object.values(data);
-
-                    if (cloudArticles.length > 0) {
-                        let mergedMap = new Map();
-                        customArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
-                        cloudArticles.forEach(a => { if (a && a.id) mergedMap.set(a.id, a); });
-
-                        const newCustom = Array.from(mergedMap.values());
-                        
-                        // Check if content changed
-                        if (JSON.stringify(newCustom) !== JSON.stringify(customArticles)) {
-                            customArticles = newCustom;
-                            localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
-
-                            allArticles = getCombinedArticles();
-                            refreshCategories();
-                            renderNavigation();
-                            renderArticleList();
-
-                            if (currentArticleId) {
-                                const activeArt = allArticles.find(a => a.id === currentArticleId);
-                                if (activeArt) renderReaderMessages(activeArt);
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (err) {
-            console.warn("Firebase Cloud custom articles sync warning:", err);
+    function saveDeletedIdsToCloud(delList) {
+        deletedArticleIds = delList;
+        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(delList));
+        if (typeof fetch === 'function') {
+            fetch(FIREBASE_DELETED_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(delList)
+            }).catch(e => {});
         }
     }
 
-    // Push Custom Topics & Messages to Google Firebase Cloud Storage for ALL Users
     function saveCustomArticlesToCloud(articlesList) {
+        customArticles = articlesList;
         localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(articlesList));
         if (typeof fetch === 'function') {
             fetch(FIREBASE_ARTICLES_URL, {
@@ -827,9 +849,7 @@ function initApp() {
                         deletedArticleIds.push(art.id);
                     });
 
-                    try {
-                        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
-                    } catch (e) {}
+                    saveDeletedIdsToCloud(deletedArticleIds);
 
                     const catIdx = defaultCategories.indexOf(activeCategory);
                     if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
@@ -992,13 +1012,22 @@ function initApp() {
         });
     }
 
-    // Highlight Exact Search Terms
-    function highlightText(text, query) {
-        if (!query || !query.trim()) return text;
+    // SAFE HTML HIGHLIGHTER (NEVER REPLACES INSIDE HTML TAGS OR SRC ATTRIBUTES!)
+    function highlightText(htmlText, query) {
+        if (!query || !query.trim() || !htmlText) return htmlText;
         const q = query.trim();
         const escaped = escapeRegExp(q);
-        const regex = new RegExp(`(${escaped})`, 'gi');
-        return text.replace(regex, '<mark class="search-hl">$1</mark>');
+        const searchRegex = new RegExp(`(${escaped})`, 'gi');
+
+        return htmlText.replace(/(<[^>]+>)|([^<]+)/g, (match, isTag, isText) => {
+            if (isTag) {
+                // Return HTML tags completely untouched (leaves <img src="data:image..."> safe!)
+                return isTag;
+            } else if (isText) {
+                return isText.replace(searchRegex, '<mark class="search-hl">$1</mark>');
+            }
+            return match;
+        });
     }
 
     // Parse Markdown Content into Individual Messages
@@ -1669,10 +1698,8 @@ function initApp() {
                 "Bạn có chắc chắn muốn xóa toàn bộ chủ đề này khỏi thư viện?",
                 () => {
                     deletedArticleIds.push(currentArticleId);
-                    try {
-                        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
-                    } catch (e) {}
-                    
+                    saveDeletedIdsToCloud(deletedArticleIds);
+
                     const custIdx = customArticles.findIndex(a => a.id === currentArticleId);
                     if (custIdx >= 0) {
                         customArticles.splice(custIdx, 1);
@@ -1715,7 +1742,8 @@ function initApp() {
                 exportDate: getVietnamTimeString(),
                 articles: allArticles,
                 customArticles: customArticles,
-                customCategories: customCategories
+                customCategories: customCategories,
+                deletedArticleIds: deletedArticleIds
             };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -1818,20 +1846,14 @@ function initApp() {
         renderArticleList();
     }
 
-    // Initial background cloud log & custom article sync with Official Google Firebase Cloud
-    syncLogsFromCloud();
-    syncCategoriesFromCloud();
-    syncCustomArticlesFromCloud();
+    // INITIAL UNIFIED CLOUD MASTER FETCH
+    syncAllFromCloud();
 
-    // AUTOMATIC LIVE REALTIME CLOUD SYNC POLLING ENGINE (Tự động đồng bộ Realtime ngầm mỗi 5 giây)
-    setInterval(() => {
-        syncCategoriesFromCloud();
-        syncCustomArticlesFromCloud();
-        syncLogsFromCloud();
-    }, 5000);
+    // AUTOMATIC LIVE REALTIME CLOUD SYNC POLLING ENGINE (Tự động đồng bộ Realtime ngầm mỗi 3 giây)
+    setInterval(syncAllFromCloud, 3000);
 
     window.onhashchange = restoreStateFromHash;
-    console.log("App initialization completed. Live Realtime Sync Active (5s). Articles loaded:", allArticles.length);
+    console.log("App initialization completed. Cloud Master Sync Active (3s). Articles loaded:", allArticles.length);
 }
 
 // Ensure execution
