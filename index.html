@@ -96,12 +96,12 @@
                 </div>
             </section>
 
-            <!-- Sticky Search Section -->
+            <!-- Sticky Search Section (Global Search) -->
             <section class="search-section">
                 <div class="search-bar-container">
                     <div class="search-input-wrapper">
                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                        <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa (Vd: Hóa Kỵ, Tử vi, Phong thủy, Phụ mẫu)...">
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa trên toàn bộ website (Vd: Hóa Kỵ, Phá quân, Tử vi, Phong thủy, Phụ mẫu)...">
                         <button id="clearSearchBtn" class="clear-btn" style="display: none;">&times;</button>
                     </div>
                 </div>
@@ -138,8 +138,8 @@
                 <!-- Empty State -->
                 <div id="noResults" class="empty-card" style="display: none;">
                     <div class="empty-icon">🔍</div>
-                    <h3>Không tìm thấy chủ đề nào</h3>
-                    <p>Hãy bấm nút <b>"➕ Thêm Chủ Đề Mới"</b> ở trên để tạo chủ đề/kênh đầu tiên cho chuyên mục này.</p>
+                    <h3>Không tìm thấy nội dung phù hợp</h3>
+                    <p>Hãy thử tìm với từ khóa khác (không phân biệt dấu tiếng Việt) hoặc bấm nút <b>"➕ Thêm Chủ Đề Mới"</b>.</p>
                 </div>
             </section>
 
@@ -255,7 +255,7 @@
         </div>
     </div>
 
-    <!-- Modal 2: Add New Topic / Channel -->
+    <!-- Modal 2: Add / Edit Topic Modal -->
     <div class="modal" id="topicModal">
         <div class="modal-backdrop" id="topicModalBackdrop"></div>
         <div class="modal-card modal-sm">
@@ -281,6 +281,24 @@
                     <button type="submit" class="btn btn-primary" id="saveTopicModalSubmitBtn">Tạo Chủ Đề & Đăng Bài</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Custom Modern Centered Confirm & Alert Dialog (Screenshot 2 solution) -->
+    <div class="modal" id="customConfirmModal">
+        <div class="modal-backdrop" id="customConfirmBackdrop"></div>
+        <div class="modal-card modal-sm confirm-card-centered">
+            <div class="modal-header confirm-header">
+                <span class="confirm-icon" id="confirmModalIcon">❓</span>
+                <h3 id="confirmModalTitle">Xác nhận thao tác</h3>
+            </div>
+            <div class="modal-body confirm-body">
+                <p id="confirmModalMessage">Bạn có chắc chắn muốn thực hiện hành động này không?</p>
+            </div>
+            <div class="modal-footer confirm-footer">
+                <button type="button" class="btn btn-secondary" id="confirmModalCancelBtn">Hủy bỏ</button>
+                <button type="button" class="btn btn-primary" id="confirmModalOkBtn">Đồng ý</button>
+            </div>
         </div>
     </div>
 

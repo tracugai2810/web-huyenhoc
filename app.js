@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - FULL INTERACTIVE EDITION (V2)
+// KNOWLEDGE BASE APPLICATION LOGIC - UNIVERSAL SEARCH & MODERN CONFIRMS (V3)
 // ==========================================================================
 
 function initApp() {
@@ -90,6 +90,42 @@ function initApp() {
     const topicModalHeaderTitle = document.getElementById('topicModalHeaderTitle');
     const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
     const editTopicId = document.getElementById('editTopicId');
+
+    // Custom Modern Confirm Modal Elements (Screenshot 2 fix)
+    const customConfirmModal = document.getElementById('customConfirmModal');
+    const customConfirmBackdrop = document.getElementById('customConfirmBackdrop');
+    const confirmModalTitle = document.getElementById('confirmModalTitle');
+    const confirmModalMessage = document.getElementById('confirmModalMessage');
+    const confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
+    const confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
+    let onConfirmCallback = null;
+
+    function showCustomConfirm(title, message, callback) {
+        if (!customConfirmModal) {
+            if (confirm(message)) callback();
+            return;
+        }
+        if (confirmModalTitle) confirmModalTitle.textContent = title || "Xác nhận";
+        if (confirmModalMessage) confirmModalMessage.textContent = message;
+        onConfirmCallback = callback;
+        customConfirmModal.classList.add('active');
+    }
+
+    function closeCustomConfirm() {
+        if (customConfirmModal) customConfirmModal.classList.remove('active');
+        onConfirmCallback = null;
+    }
+
+    if (confirmModalCancelBtn) confirmModalCancelBtn.onclick = closeCustomConfirm;
+    if (customConfirmBackdrop) customConfirmBackdrop.onclick = closeCustomConfirm;
+    if (confirmModalOkBtn) {
+        confirmModalOkBtn.onclick = () => {
+            if (typeof onConfirmCallback === 'function') {
+                onConfirmCallback();
+            }
+            closeCustomConfirm();
+        };
+    }
 
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
@@ -194,6 +230,18 @@ function initApp() {
     let currentArticleId = null;
     let readerFontSize = 16;
 
+    // Vietnamese Diacritics & Hyphen Normalizer (Screenshot 4 Search Optimization)
+    function normalizeSearchText(str) {
+        if (!str) return '';
+        return str.toLowerCase()
+                  .normalize('NFD')
+                  .replace(/[\u0300-\u036f]/g, '') // remove tone accents
+                  .replace(/đ/g, 'd')
+                  .replace(/[-_]/g, ' ') // convert hyphens to spaces (#phá-quân -> phá quân)
+                  .replace(/\s+/g, ' ')
+                  .trim();
+    }
+
     // Render Navigation Sidebar
     function renderNavigation(filterFilterText = '') {
         let filteredCats = categories;
@@ -258,24 +306,25 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List
+    // Render Article Grid List with Universal Smart Global Search
     function renderArticleList() {
         if (!articleGrid) return;
         
         let filtered = allArticles;
 
-        if (activeCategory !== 'ALL') {
-            filtered = filtered.filter(a => a.category === activeCategory);
-        }
+        // If user typed search query, ALWAYS SEARCH GLOBALLY across entire site (Screenshot 3 & 4 requirement!)
+        const trimmedQuery = searchQuery.trim();
+        const normQuery = normalizeSearchText(trimmedQuery);
 
-        if (searchQuery.trim() !== '') {
-            const q = searchQuery.toLowerCase().trim();
+        if (normQuery !== '') {
             filtered = filtered.filter(a => {
-                return (a.title && a.title.toLowerCase().includes(q)) ||
-                       (a.category && a.category.toLowerCase().includes(q)) ||
-                       (a.channel && a.channel.toLowerCase().includes(q)) ||
-                       (a.content && a.content.toLowerCase().includes(q));
+                const normTitle = normalizeSearchText(a.title);
+                const normCat = normalizeSearchText(a.category);
+                const normContent = normalizeSearchText(a.content);
+                return normTitle.includes(normQuery) || normCat.includes(normQuery) || normContent.includes(normQuery);
             });
+        } else if (activeCategory !== 'ALL') {
+            filtered = filtered.filter(a => a.category === activeCategory);
         }
 
         if (sortMode === 'msgHigh') {
@@ -285,7 +334,11 @@ function initApp() {
         }
 
         if (currentCategoryTitle) {
-            currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Chủ Đề' : `Chuyên mục: ${activeCategory}`;
+            if (normQuery) {
+                currentCategoryTitle.textContent = `Kết quả tìm kiếm: "${trimmedQuery}"`;
+            } else {
+                currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Chủ Đề' : `Chuyên mục: ${activeCategory}`;
+            }
         }
         if (articleCountBadge) {
             articleCountBadge.textContent = `${filtered.length} chủ đề`;
@@ -298,8 +351,8 @@ function initApp() {
                 noResults.style.display = 'block';
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
-                    <h3>Không tìm thấy chủ đề nào</h3>
-                    <p>Hãy bấm nút <b>"➕ Thêm Chủ Đề Mới"</b> ở trên để tạo chủ đề/kênh đầu tiên cho chuyên mục này.</p>
+                    <h3>Không tìm thấy nội dung phù hợp</h3>
+                    <p>Hãy thử tìm lại với từ khóa khác hoặc tạo chủ đề mới.</p>
                 `;
             }
             return;
@@ -313,9 +366,9 @@ function initApp() {
             let displayTitle = escapeHtml(art.title || 'Chủ đề');
             let displaySnippet = escapeHtml(art.preview || "Nội dung bài viết...");
 
-            if (searchQuery) {
-                displayTitle = highlightText(displayTitle, searchQuery);
-                displaySnippet = highlightText(displaySnippet, searchQuery);
+            if (trimmedQuery) {
+                displayTitle = highlightText(displayTitle, trimmedQuery);
+                displaySnippet = highlightText(displaySnippet, trimmedQuery);
             }
 
             card.innerHTML = `
@@ -328,7 +381,8 @@ function initApp() {
                 <p class="card-snippet">${displaySnippet}</p>
             `;
 
-            card.onclick = () => openReaderView(art.id);
+            // Clicking card opens reader view AND auto-scrolls to target search match!
+            card.onclick = () => openReaderView(art.id, searchQuery);
             articleGrid.appendChild(card);
         });
     }
@@ -341,8 +395,9 @@ function initApp() {
     }
 
     function highlightText(text, query) {
-        if (!query) return text;
-        const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
+        if (!query || !query.trim()) return text;
+        const q = query.trim();
+        const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
         return text.replace(regex, '<mark class="search-hl">$1</mark>');
     }
 
@@ -368,11 +423,18 @@ function initApp() {
         }
 
         if (matches.length === 0) {
+            // Strip header line if present
+            let bodyOnly = rawMarkdown;
+            if (bodyOnly.startsWith('# ')) {
+                const firstBreak = bodyOnly.indexOf('\n\n');
+                if (firstBreak >= 0) bodyOnly = bodyOnly.substring(firstBreak + 2);
+            }
+
             return [{
                 id: 0,
                 author: currentUsername,
                 timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                bodyText: rawMarkdown
+                bodyText: bodyOnly.trim()
             }];
         }
 
@@ -393,26 +455,23 @@ function initApp() {
         return messagesList;
     }
 
-    // Helper: Separate pure text from Markdown Image URLs
+    // Separate text from markdown image URLs
     function extractTextAndImages(bodyMarkdown) {
         let text = bodyMarkdown || "";
         let images = [];
 
-        // Match markdown image regex: ![alt](url)
         const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
         let match;
         while ((match = imgRegex.exec(bodyMarkdown)) !== null) {
             images.push(match[2]);
         }
 
-        // Clean image markdown out of text
         text = text.replace(imgRegex, '').trim();
-
         return { text, images };
     }
 
-    // Reader View & Interactive Message Rendering with INLINE EDITOR + IMAGE MANAGEMENT
-    function openReaderView(id) {
+    // Reader View & Interactive Message Rendering with AUTO-SCROLL TO SEARCH MATCH (Screenshot 4 & 5 fix)
+    function openReaderView(id, activeSearchQuery = '') {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
 
@@ -429,25 +488,49 @@ function initApp() {
             }
         }
 
-        renderReaderMessages(article);
+        renderReaderMessages(article, activeSearchQuery);
 
         if (heroBanner) heroBanner.style.display = 'none';
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // Scroll to search match or top
+        if (activeSearchQuery && activeSearchQuery.trim()) {
+            setTimeout(() => {
+                const firstMatch = readerContent.querySelector('.active-search-match') || readerContent.querySelector('.pulse-search-match');
+                if (firstMatch) {
+                    firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            }, 100);
+        } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     }
 
-    function renderReaderMessages(article) {
+    function renderReaderMessages(article, activeSearchQuery = '') {
         const parsedMsgs = parseMessagesFromContent(article.content || '');
         if (readerMsgCount) readerMsgCount.textContent = `💬 ${parsedMsgs.length} luận giải`;
 
         if (!readerContent) return;
         readerContent.innerHTML = '';
 
+        const normSearchQuery = normalizeSearchText(activeSearchQuery);
+
         parsedMsgs.forEach((msg, idx) => {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-block';
             msgDiv.setAttribute('data-msg-idx', idx);
+
+            let isMessageMatchingSearch = false;
+            if (normSearchQuery) {
+                const normBody = normalizeSearchText(msg.bodyText);
+                if (normBody.includes(normSearchQuery)) {
+                    isMessageMatchingSearch = true;
+                    msgDiv.classList.add('pulse-search-match');
+                }
+            }
 
             let renderedBody = "";
             try {
@@ -458,6 +541,13 @@ function initApp() {
                 }
             } catch (err) {
                 renderedBody = escapeHtml(msg.bodyText).replace(/\n/g, '<br>');
+            }
+
+            // Highlight search matches in HTML
+            if (activeSearchQuery && activeSearchQuery.trim()) {
+                const q = activeSearchQuery.trim();
+                const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
+                renderedBody = renderedBody.replace(regex, '<mark class="search-hl active-search-match">$1</mark>');
             }
 
             msgDiv.innerHTML = `
@@ -474,7 +564,7 @@ function initApp() {
                 <div class="msg-body markdown-body">${renderedBody}</div>
             `;
 
-            // IN-PLACE INLINE EDITING (Screenshot 1 & 2 solution: Clean Text + Image Previews)
+            // IN-PLACE INLINE EDITING
             const editBtn = msgDiv.querySelector('.edit-msg-btn');
             const msgBodyDiv = msgDiv.querySelector('.msg-body');
 
@@ -537,7 +627,6 @@ function initApp() {
                     renderEditImages();
                     if (textarea) textarea.focus();
 
-                    // Paste images while editing
                     if (textarea) {
                         textarea.onpaste = (e) => {
                             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
@@ -553,7 +642,6 @@ function initApp() {
                         };
                     }
 
-                    // File input images while editing
                     if (fileInput) {
                         fileInput.onchange = (e) => {
                             const files = e.target.files;
@@ -593,14 +681,18 @@ function initApp() {
                 };
             }
 
-            // Delete single message
+            // Delete single message with MODERN CONFIRM MODAL (Screenshot 2 fix)
             const deleteBtn = msgDiv.querySelector('.delete-msg-btn');
             if (deleteBtn) {
                 deleteBtn.onclick = () => {
-                    if (confirm("Bạn có chắc chắn muốn xóa đoạn luận giải này?")) {
-                        parsedMsgs.splice(idx, 1);
-                        saveUpdatedMessagesToArticle(article, parsedMsgs);
-                    }
+                    showCustomConfirm(
+                        "🗑️ Xóa luận giải",
+                        "Bạn có chắc chắn muốn xóa đoạn luận giải này không?",
+                        () => {
+                            parsedMsgs.splice(idx, 1);
+                            saveUpdatedMessagesToArticle(article, parsedMsgs);
+                        }
+                    );
                 };
             }
 
@@ -609,16 +701,7 @@ function initApp() {
     }
 
     function saveUpdatedMessagesToArticle(article, messagesList) {
-        let lines = (article.content || '').split('\n');
-        let headerLines = [];
-        for (let l of lines) {
-            if (l.startsWith('# ') || l.startsWith('*Extracted') || l.startsWith('*Total') || l.startsWith('---')) {
-                headerLines.push(l);
-            } else if (l.startsWith('### **')) {
-                break;
-            }
-        }
-        let headerText = headerLines.join('\n');
+        const headerText = `# ${article.category} / #${article.title}`;
         
         let newContent = headerText + '\n\n';
         messagesList.forEach(m => {
@@ -772,7 +855,7 @@ function initApp() {
         };
     }
 
-    // Streamlined Category Modal & Topic Modal Workflow
+    // Category Modal
     if (addCategoryBtnSidebar) {
         addCategoryBtnSidebar.onclick = () => {
             if (categoryModal) categoryModal.classList.add('active');
@@ -800,7 +883,7 @@ function initApp() {
         };
     }
 
-    // "➕ Thêm Chủ Đề Mới" Button Workflow & "✏️ Sửa Chủ Đề" (Screenshot 3 fix)
+    // Topic Modal
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         
@@ -844,7 +927,6 @@ function initApp() {
     if (cancelTopicModalBtn) cancelTopicModalBtn.onclick = () => topicModal.classList.remove('active');
     if (topicModalBackdrop) topicModalBackdrop.onclick = () => topicModal.classList.remove('active');
 
-    // Topic Form Submission -> Creates or edits topic
     if (topicForm) {
         topicForm.onsubmit = (e) => {
             e.preventDefault();
@@ -860,26 +942,19 @@ function initApp() {
             let targetId = null;
 
             if (id) {
-                // Edit existing Topic
                 let index = customArticles.findIndex(a => a.id === id);
                 let targetArt = allArticles.find(a => a.id === id);
 
                 if (targetArt) {
-                    // Update header lines in content
-                    let contentLines = (targetArt.content || '').split('\n');
-                    if (contentLines.length > 0 && contentLines[0].startsWith('# ')) {
-                        contentLines[0] = `# ${cat} / #${title}`;
-                    }
-                    const updatedContent = contentLines.join('\n');
-
+                    const parsedMsgs = parseMessagesFromContent(targetArt.content);
                     const updatedArt = {
                         ...targetArt,
                         id: id,
                         category: cat,
                         title: title,
-                        channel: title,
-                        content: updatedContent
+                        channel: title
                     };
+                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
 
                     if (index >= 0) {
                         customArticles[index] = updatedArt;
@@ -889,7 +964,6 @@ function initApp() {
                     targetId = id;
                 }
             } else {
-                // Check if existing
                 let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
                 if (existingArticle) {
                     targetId = existingArticle.id;
@@ -927,21 +1001,26 @@ function initApp() {
         };
     }
 
+    // Delete Topic with Modern Confirm Modal (Screenshot 2 fix)
     if (deleteArticleBtn) {
         deleteArticleBtn.onclick = () => {
             if (!currentArticleId) return;
-            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ chủ đề này không?")) {
-                deletedArticleIds.push(currentArticleId);
-                try {
-                    localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
-                } catch (e) {}
-                
-                allArticles = getCombinedArticles();
-                refreshCategories();
-                renderNavigation();
-                renderArticleList();
-                showListView();
-            }
+            showCustomConfirm(
+                "🗑️ Xóa Toàn Bộ Chủ Đề",
+                "Bạn có chắc chắn muốn xóa toàn bộ chủ đề này khỏi thư viện?",
+                () => {
+                    deletedArticleIds.push(currentArticleId);
+                    try {
+                        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
+                    } catch (e) {}
+                    
+                    allArticles = getCombinedArticles();
+                    refreshCategories();
+                    renderNavigation();
+                    renderArticleList();
+                    showListView();
+                }
+            );
         };
     }
 
@@ -1004,12 +1083,16 @@ function initApp() {
         if (searchInput) searchInput.focus();
     };
 
-    // Search Input Logic
+    // Universal Global Search Input Logic (Screenshot 3 & 4 requirement!)
     if (searchInput) {
         searchInput.oninput = (e) => {
             searchQuery = e.target.value;
             if (clearSearchBtn) {
                 clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+            }
+            if (searchQuery.trim()) {
+                activeCategory = 'ALL';
+                renderNavigation();
             }
             renderArticleList();
             showListView();

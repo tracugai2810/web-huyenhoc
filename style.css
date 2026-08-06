@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - IN-PLACE EDITING & STREAMLINED CREATION
+   PREMIUM LUXURY DESIGN SYSTEM - UNIVERSAL SEARCH & MODERN CONFIRM MODAL
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -728,10 +728,22 @@ h1, h2, h3, h4 {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    transition: border-color 0.2s ease;
+    transition: all 0.3s ease;
 }
 .msg-block:hover {
     border-color: var(--primary);
+}
+
+/* Glowing pulse highlight for search matches */
+.msg-block.pulse-search-match {
+    border-color: #F59E0B !important;
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25) !important;
+    animation: searchPulseGlow 2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes searchPulseGlow {
+    0% { transform: scale(1.02); box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.4); }
+    100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25); }
 }
 
 .msg-block-header {
@@ -784,7 +796,7 @@ h1, h2, h3, h4 {
     box-shadow: var(--shadow-sm);
 }
 
-/* In-place Live Inline Editor (Screenshot 1 solution) */
+/* In-place Live Inline Editor */
 .msg-inline-editor {
     display: flex;
     flex-direction: column;
@@ -810,7 +822,7 @@ h1, h2, h3, h4 {
     gap: 8px;
 }
 
-/* Inline Quick Add Message Box (Screenshot 3) */
+/* Inline Quick Add Message Box */
 .inline-add-msg-box {
     margin-top: 24px;
     background-color: var(--bg-app);
@@ -1050,12 +1062,53 @@ h1, h2, h3, h4 {
     gap: 10px;
 }
 
+/* Custom Centered Confirm Dialog (Screenshot 2 solution) */
+.confirm-card-centered {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+    animation: confirmPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes confirmPop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+}
+.confirm-icon { font-size: 24px; }
+.confirm-body {
+    padding: 24px 22px;
+    font-size: 15px;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+.confirm-footer {
+    border-top: 1px solid var(--border);
+    padding: 16px 22px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 /* Highlight Search */
 mark.search-hl {
     background-color: #FEF08A;
     color: #854D0E;
-    padding: 1px 4px;
-    border-radius: 3px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+mark.active-search-match {
+    background-color: #F59E0B;
+    color: #FFFFFF;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
 }
 
 /* Responsive */
