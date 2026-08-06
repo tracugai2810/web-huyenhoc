@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - SINGLE STICKY SEARCH BAR WITH BACK BUTTON (V8)
+   PREMIUM LUXURY DESIGN SYSTEM - MOBILE FIRST SEARCH OPTIMIZED (V9)
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -9,7 +9,7 @@
     --bg-card-hover: #FFFFFF;
     --bg-sidebar: #FFFFFF;
     --bg-input: #F1F5F9;
-    --bg-header: rgba(255, 255, 255, 0.88);
+    --bg-header: rgba(255, 255, 255, 0.92);
     --bg-pill: #FFFFFF;
     --bg-msg: #F8FAFC;
     
@@ -49,7 +49,7 @@ html[data-theme="dark"] {
     --bg-card-hover: #1A233A;
     --bg-sidebar: #111726;
     --bg-input: #1E293B;
-    --bg-header: rgba(17, 23, 38, 0.9);
+    --bg-header: rgba(17, 23, 38, 0.92);
     --bg-pill: #1E293B;
     --bg-msg: #1E293B;
     
@@ -186,7 +186,7 @@ h1, h2, h3, h4 {
     background-color: var(--primary-light);
     color: var(--primary-text);
     padding: 8px 14px;
-    min-height: 38px;
+    min-height: 42px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     flex-shrink: 0;
@@ -218,7 +218,7 @@ h1, h2, h3, h4 {
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
-    z-index: 40;
+    z-index: 50;
     box-shadow: var(--shadow-sm);
 }
 
@@ -289,9 +289,9 @@ h1, h2, h3, h4 {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    height: calc(100vh - 63px);
+    height: calc(100vh - 61px);
     position: sticky;
-    top: 63px;
+    top: 61px;
 }
 
 .sidebar-header {
@@ -466,13 +466,14 @@ h1, h2, h3, h4 {
 }
 .stat-pill strong { color: #FBBF24; }
 
-/* SINGLE STICKY SEARCH SECTION (Ghim dính duy nhất 1 ô tìm kiếm toàn bộ website kèm nút Quay lại - Screenshot 2 Solution) */
+/* PERFECT STICKY SEARCH SECTION (Fix góc bị cắt cut off - Ảnh 3 Fix!) */
 .search-section {
     position: sticky;
-    top: 63px;
+    top: 61px;
     z-index: 45;
-    background: var(--bg-app);
-    padding: 6px 0;
+    background-color: var(--bg-app);
+    padding: 8px 0;
+    margin-top: -4px;
     transition: all 0.25s ease;
 }
 
@@ -498,7 +499,7 @@ h1, h2, h3, h4 {
 
 .search-input-wrapper input {
     width: 100%;
-    padding: 13px 44px 13px 48px;
+    padding: 12px 44px 12px 48px;
     background-color: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -579,22 +580,10 @@ h1, h2, h3, h4 {
     font-weight: 600;
 }
 
-.view-sort select {
-    padding: 8px 12px;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    font-size: 13px;
-    font-family: var(--font-sans);
-    color: var(--text-primary);
-}
-
-/* Distraction-Free Search Mode */
-body.is-searching .hero-section {
-    display: none !important;
-}
-
-body.is-searching .category-actions-group {
+/* Distraction-Free Search Mode (Ẩn hoàn toàn nút Thêm Bài khi gõ tìm kiếm - Ảnh 1 Fix!) */
+body.is-searching .hero-section,
+body.is-searching .category-actions-group,
+body.is-searching #headerRightActions {
     display: none !important;
 }
 
@@ -705,7 +694,7 @@ body.is-searching .category-actions-group {
 }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 
-/* Reader Action Toolbar Row (Bên trong bài viết, không ghim dính khi cuộn) */
+/* Reader Action Toolbar Row */
 .reader-toolbar-actions {
     display: flex;
     align-items: center;
@@ -976,52 +965,6 @@ body.is-searching .category-actions-group {
     justify-content: center;
 }
 
-/* Mobile Bottom Navigation */
-.mobile-bottom-nav {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    height: 62px;
-    background-color: var(--bg-card);
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    z-index: 90;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-}
-
-.nav-item {
-    background: none;
-    border: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    color: var(--text-muted);
-    font-size: 11px;
-    font-weight: 600;
-    font-family: var(--font-sans);
-    cursor: pointer;
-}
-.nav-item.active { color: var(--primary); }
-
-.nav-item-add {
-    position: relative;
-    top: -12px;
-}
-.add-icon-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: var(--primary-gradient);
-    color: #FFFFFF;
-    font-size: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px rgba(79, 70, 229, 0.4);
-}
-
 /* Modal Styling */
 .modal {
     display: none;
@@ -1181,7 +1124,7 @@ mark.active-search-match {
     }
     
     .search-section {
-        top: 59px;
+        top: 57px;
         z-index: 45;
         padding: 4px 0;
     }
@@ -1194,7 +1137,7 @@ mark.active-search-match {
     .search-icon { left: 12px; }
 
     .btn-back span { display: none; }
-    .btn-back { padding: 8px 10px; min-height: 38px; }
+    .btn-back { padding: 8px 10px; min-height: 40px; }
 
     .app-sidebar {
         position: fixed;
@@ -1215,19 +1158,19 @@ mark.active-search-match {
     }
     .sidebar-overlay.active { display: block; }
 
-    .hero-section { padding: 20px 16px; }
-    .hero-title { font-size: 20px; }
+    .hero-section { padding: 18px 14px; }
+    .hero-title { font-size: 19px; }
     .hero-desc { font-size: 12px; }
     
-    .app-main { padding: 12px; padding-bottom: 78px; gap: 12px; }
-    .reader-article-card { padding: 16px; gap: 14px; }
+    .app-main { padding: 10px; padding-bottom: 24px; gap: 10px; }
+    .reader-article-card { padding: 14px; gap: 12px; }
     .reader-article-title { font-size: 18px; }
-    .msg-block { padding: 14px; gap: 8px; }
-    .inline-add-msg-box { padding: 14px; }
+    .msg-block { padding: 12px; gap: 8px; }
+    .inline-add-msg-box { padding: 12px; }
     
     .article-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 10px;
     }
 }
 

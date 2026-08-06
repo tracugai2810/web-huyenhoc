@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - UNIVERSAL GLOBAL SEARCH EVERYWHERE (V10)
+// KNOWLEDGE BASE APPLICATION LOGIC - MOBILE FIRST SEARCH OPTIMIZED (V11)
 // ==========================================================================
 
 function initApp() {
@@ -22,7 +22,6 @@ function initApp() {
     
     const searchInput = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
-    const sortSelect = document.getElementById('sortSelect');
     
     const listView = document.getElementById('listView');
     const readerView = document.getElementById('readerView');
@@ -33,6 +32,7 @@ function initApp() {
     const articleGrid = document.getElementById('articleGrid');
     const noResults = document.getElementById('noResults');
     const addChannelBtnCategory = document.getElementById('addChannelBtnCategory');
+    const headerRightActions = document.getElementById('headerRightActions');
 
     const categoryActionsGroup = document.getElementById('categoryActionsGroup');
     const editCategoryBtn = document.getElementById('editCategoryBtn');
@@ -175,12 +175,6 @@ function initApp() {
         };
     }
 
-    // Bottom Nav Elements
-    const navHomeBtn = document.getElementById('navHomeBtn');
-    const navCategoriesBtn = document.getElementById('navCategoriesBtn');
-    const navAddTopicBtn = document.getElementById('navAddTopicBtn');
-    const navSearchFocusBtn = document.getElementById('navSearchFocusBtn');
-
     // Image Upload Buffer
     let pendingBase64Images = [];
 
@@ -308,7 +302,6 @@ function initApp() {
     // App Navigation State
     let activeCategory = 'ALL';
     let searchQuery = '';
-    let sortMode = 'default';
     let currentArticleId = null;
 
     // Vietnamese Diacritics & Hyphen Normalizer
@@ -491,6 +484,7 @@ function initApp() {
         if (normQuery !== '') {
             document.body.classList.add('is-searching');
             if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
+            if (headerRightActions) headerRightActions.style.display = 'none';
 
             filtered = filtered.filter(a => {
                 const normTitle = normalizeSearchText(a.title);
@@ -500,18 +494,13 @@ function initApp() {
             });
         } else {
             document.body.classList.remove('is-searching');
+            if (headerRightActions) headerRightActions.style.display = 'flex';
             if (activeCategory !== 'ALL') {
                 filtered = filtered.filter(a => a.category === activeCategory);
                 if (categoryActionsGroup) categoryActionsGroup.style.display = 'inline-flex';
             } else {
                 if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
             }
-        }
-
-        if (sortMode === 'msgHigh') {
-            filtered.sort((a, b) => (b.msgCount || 0) - (a.msgCount || 0));
-        } else if (sortMode === 'titleAz') {
-            filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
         }
 
         if (currentCategoryTitle) {
@@ -594,13 +583,6 @@ function initApp() {
             card.onclick = () => openReaderView(art.id, searchQuery);
             articleGrid.appendChild(card);
         });
-    }
-
-    if (sortSelect) {
-        sortSelect.onchange = (e) => {
-            sortMode = e.target.value;
-            renderArticleList();
-        };
     }
 
     function highlightText(text, query) {
@@ -1154,7 +1136,6 @@ function initApp() {
     }
 
     if (addChannelBtnCategory) addChannelBtnCategory.onclick = () => openTopicModal(null);
-    if (navAddTopicBtn) navAddTopicBtn.onclick = () => openTopicModal(null);
 
     if (editTopicBtn) {
         editTopicBtn.onclick = () => {
@@ -1330,15 +1311,7 @@ function initApp() {
     if (closeSidebarBtn) closeSidebarBtn.onclick = closeMobileSidebar;
     if (sidebarOverlay) sidebarOverlay.onclick = closeMobileSidebar;
 
-    // Mobile Bottom Nav Buttons
-    if (navHomeBtn) navHomeBtn.onclick = () => selectCategory('ALL');
-    if (navCategoriesBtn) navCategoriesBtn.onclick = openMobileSidebar;
-    if (navSearchFocusBtn) navSearchFocusBtn.onclick = () => {
-        showListView();
-        if (searchInput) searchInput.focus();
-    };
-
-    // SINGLE GLOBAL SEARCH INPUT LOGIC - ALWAYS RETURNS TO GLOBAL SEARCH LIST WHEN TYPING/MODIFYING! (User Request Fix)
+    // SINGLE GLOBAL SEARCH INPUT LOGIC WITH KEYBOARD DISMISS ON ENTER (Ảnh 1 Fix!)
     if (searchInput) {
         searchInput.oninput = (e) => {
             searchQuery = e.target.value;
@@ -1346,7 +1319,6 @@ function initApp() {
                 clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
             }
 
-            // Always return to List View when typing or modifying search query!
             showListView();
 
             if (searchQuery.trim()) {
@@ -1354,6 +1326,15 @@ function initApp() {
                 renderNavigation();
             }
             renderArticleList();
+        };
+
+        // AUTO-DISMISS SOFT KEYBOARD WHEN PRESSING ENTER/RETURN (Ảnh 1 Solution)
+        searchInput.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.keyCode === 13) {
+                if (typeof searchInput.blur === 'function') {
+                    searchInput.blur();
+                }
+            }
         };
     }
 

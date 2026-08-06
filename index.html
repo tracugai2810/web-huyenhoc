@@ -96,7 +96,7 @@
                 </div>
             </section>
 
-            <!-- SINGLE STICKY SEARCH SECTION (DUY NHẤT 1 THANH TÌM KIẾM CỐ ĐỊNH KÈM NÚT QUAY LẠI) -->
+            <!-- SINGLE STICKY SEARCH SECTION -->
             <section class="search-section" id="globalStickySearchSection">
                 <div class="search-bar-container">
                     <!-- Nút Quay Lại dính liền bên trái ô tìm kiếm khi đọc bài -->
@@ -107,7 +107,7 @@
 
                     <div class="search-input-wrapper">
                         <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-                        <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa trên toàn bộ website (Vd: Hóa Kỵ, Phá quân, Tử vi, Phong thủy)...">
+                        <input type="text" id="searchInput" placeholder="Tìm kiếm từ khóa trên toàn bộ website (Vd: Hóa Kỵ, Phá quân, Tử vi, Phong thủy)..." enterkeyhint="search">
                         <button id="clearSearchBtn" class="clear-btn" style="display: none;">&times;</button>
                     </div>
                 </div>
@@ -131,14 +131,6 @@
                         <button id="addChannelBtnCategory" class="btn btn-primary" title="Thêm Chủ Đề Mới Vào Chuyên Mục Này">
                             ➕ Thêm Chủ Đề Mới
                         </button>
-
-                        <div class="view-sort">
-                            <select id="sortSelect">
-                                <option value="default">Sắp xếp mặc định</option>
-                                <option value="msgHigh">Nhiều tin nhắn nhất</option>
-                                <option value="titleAz">Tên từ A-Z</option>
-                            </select>
-                        </div>
                     </div>
                 </div>
 
@@ -157,7 +149,7 @@
 
             <!-- View 2: Article Reader & Interactive Add Message View -->
             <section id="readerView" class="view-panel">
-                <!-- Action Buttons Row Inside Article Flow (Không bị ghim dính khi cuộn) -->
+                <!-- Action Buttons Row Inside Article Flow -->
                 <div class="reader-toolbar-actions">
                     <div class="reader-meta-inline">
                         <span class="meta-cat" id="readerCategory">Chuyên mục</span>
@@ -215,26 +207,6 @@
 
         </main>
     </div>
-
-    <!-- Mobile Bottom Navigation Bar -->
-    <nav class="mobile-bottom-nav mobile-only">
-        <button id="navHomeBtn" class="nav-item active">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-            <span>Trang chủ</span>
-        </button>
-        <button id="navCategoriesBtn" class="nav-item">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span>Chuyên mục</span>
-        </button>
-        <button id="navAddTopicBtn" class="nav-item nav-item-add">
-            <div class="add-icon-circle">+</div>
-            <span>Tạo Chủ Đề</span>
-        </button>
-        <button id="navSearchFocusBtn" class="nav-item">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <span>Tìm kiếm</span>
-        </button>
-    </nav>
 
     <!-- Modal 1: Add New Category -->
     <div class="modal" id="categoryModal">
