@@ -1,24 +1,9 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - CATEGORY ACTIONS & STREAMLINED UX (V7)
+// KNOWLEDGE BASE APPLICATION LOGIC - EMBEDDED SEARCH & CUSTOM INPUT MODALS (V8)
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
-
-    // Persistent Username Setup
-    let currentUsername = localStorage.getItem('PERSISTENT_USERNAME') || 'DBC';
-
-    function setUsername(newUsername) {
-        if (!newUsername || !newUsername.trim()) return;
-        currentUsername = newUsername.trim();
-        localStorage.setItem('PERSISTENT_USERNAME', currentUsername);
-        
-        const displayUsername = document.getElementById('displayUsername');
-        if (displayUsername) displayUsername.textContent = `Tác giả: ${currentUsername}`;
-
-        const activeAuthorTag = document.getElementById('activeAuthorTag');
-        if (activeAuthorTag) activeAuthorTag.textContent = `👤 Người viết: ${currentUsername}`;
-    }
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -54,6 +39,7 @@ function initApp() {
     const deleteCategoryBtn = document.getElementById('deleteCategoryBtn');
 
     const backToListBtn = document.getElementById('backToListBtn');
+    const readerSearchInput = document.getElementById('readerSearchInput');
     
     const readerCategory = document.getElementById('readerCategory');
     const readerThreadBadge = document.getElementById('readerThreadBadge');
@@ -94,7 +80,7 @@ function initApp() {
     const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
     const editTopicId = document.getElementById('editTopicId');
 
-    // Custom Confirm & Alert Modal Elements
+    // Custom Confirm Modal Elements
     const customConfirmModal = document.getElementById('customConfirmModal');
     const customConfirmBackdrop = document.getElementById('customConfirmBackdrop');
     const confirmModalTitle = document.getElementById('confirmModalTitle');
@@ -102,6 +88,16 @@ function initApp() {
     const confirmModalCancelBtn = document.getElementById('confirmModalCancelBtn');
     const confirmModalOkBtn = document.getElementById('confirmModalOkBtn');
     let onConfirmCallback = null;
+
+    // Custom Input Modal Elements (Loại bỏ hoàn toàn prompt của trình duyệt)
+    const customInputModal = document.getElementById('customInputModal');
+    const customInputBackdrop = document.getElementById('customInputBackdrop');
+    const inputModalTitle = document.getElementById('inputModalTitle');
+    const inputModalMessage = document.getElementById('inputModalMessage');
+    const customInputField = document.getElementById('customInputField');
+    const inputModalCancelBtn = document.getElementById('inputModalCancelBtn');
+    const customInputForm = document.getElementById('customInputForm');
+    let onInputCallback = null;
 
     function showCustomConfirm(title, message, callback) {
         if (!customConfirmModal) {
@@ -143,6 +139,43 @@ function initApp() {
         };
     }
 
+    // Custom Input Dialog Functions
+    function showCustomInput(title, message, defaultValue, callback) {
+        if (!customInputModal) {
+            const val = prompt(message, defaultValue);
+            if (val && val.trim()) callback(val.trim());
+            return;
+        }
+        if (inputModalTitle) inputModalTitle.textContent = title || "Nhập thông tin";
+        if (inputModalMessage) inputModalMessage.textContent = message;
+        if (customInputField) {
+            customInputField.value = defaultValue || '';
+            if (typeof customInputField.focus === 'function') {
+                setTimeout(() => customInputField.focus(), 100);
+            }
+        }
+        onInputCallback = callback;
+        customInputModal.classList.add('active');
+    }
+
+    function closeCustomInput() {
+        if (customInputModal) customInputModal.classList.remove('active');
+        onInputCallback = null;
+    }
+
+    if (inputModalCancelBtn) inputModalCancelBtn.onclick = closeCustomInput;
+    if (customInputBackdrop) customInputBackdrop.onclick = closeCustomInput;
+    if (customInputForm) {
+        customInputForm.onsubmit = (e) => {
+            e.preventDefault();
+            const val = customInputField ? customInputField.value.trim() : '';
+            if (val && typeof onInputCallback === 'function') {
+                onInputCallback(val);
+            }
+            closeCustomInput();
+        };
+    }
+
     // Bottom Nav Elements
     const navHomeBtn = document.getElementById('navHomeBtn');
     const navCategoriesBtn = document.getElementById('navCategoriesBtn');
@@ -152,22 +185,56 @@ function initApp() {
     // Image Upload Buffer
     let pendingBase64Images = [];
 
+    // Persistent Username Setup & First-Time Visit Prompt
+    let currentUsername = localStorage.getItem('PERSISTENT_USERNAME');
+
+    function setUsername(newUsername) {
+        if (!newUsername || !newUsername.trim()) return;
+        currentUsername = newUsername.trim();
+        localStorage.setItem('PERSISTENT_USERNAME', currentUsername);
+        
+        const displayUsername = document.getElementById('displayUsername');
+        if (displayUsername) displayUsername.textContent = `Tác giả: ${currentUsername}`;
+
+        const activeAuthorTag = document.getElementById('activeAuthorTag');
+        if (activeAuthorTag) activeAuthorTag.textContent = `👤 Người viết: ${currentUsername}`;
+    }
+
+    // First time visit check (Screenshot 3 Fix!)
+    if (!currentUsername) {
+        setUsername("DBC");
+        setTimeout(() => {
+            showCustomInput(
+                "👤 Tên người dùng",
+                "Vui lòng nhập Tên tác giả / Nickname cố định của bạn:",
+                "DBC",
+                (val) => {
+                    setUsername(val);
+                }
+            );
+        }, 300);
+    } else {
+        setUsername(currentUsername);
+    }
+
+    if (userProfileCard) {
+        userProfileCard.onclick = () => {
+            showCustomInput(
+                "👤 Đổi Nickname Tác Giả",
+                "Nhập Tên tác giả / Nickname cố định của bạn:",
+                currentUsername || "DBC",
+                (val) => {
+                    setUsername(val);
+                }
+            );
+        };
+    }
+
     // View Navigation Helpers
     function showListView() {
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
         if (heroBanner && !searchQuery.trim()) heroBanner.style.display = 'block';
-    }
-
-    // Initialize Username Badge
-    setUsername(currentUsername);
-    if (userProfileCard) {
-        userProfileCard.onclick = () => {
-            const input = prompt("Nhập Tên tác giả / Nickname cố định của bạn:", currentUsername);
-            if (input && input.trim()) {
-                setUsername(input.trim());
-            }
-        };
     }
 
     // Theme Management (Light / Dark)
@@ -336,8 +403,17 @@ function initApp() {
         if (statSidebarArticles) statSidebarArticles.textContent = `Đã lưu ${allArticles.length} chủ đề`;
     }
 
+    // Select Category & AUTO-CLEAR SEARCH QUERY (Screenshot 4 Fix!)
     function selectCategory(cat) {
         activeCategory = cat;
+        
+        // Auto-clear search when clicking any sidebar category!
+        searchQuery = '';
+        if (searchInput) searchInput.value = '';
+        if (readerSearchInput) readerSearchInput.value = '';
+        if (clearSearchBtn) clearSearchBtn.style.display = 'none';
+        document.body.classList.remove('is-searching');
+
         renderNavigation(sidebarFilterInput ? sidebarFilterInput.value : '');
         renderArticleList();
         closeMobileSidebar();
@@ -350,31 +426,33 @@ function initApp() {
         };
     }
 
-    // Category Action Handlers (Sửa & Xóa Chuyên Mục)
+    // Category Action Handlers with CUSTOM INPUT MODAL (Screenshot 2 Fix!)
     if (editCategoryBtn) {
         editCategoryBtn.onclick = () => {
             if (activeCategory === 'ALL') return;
-            const newName = prompt(`Nhập tên mới cho chuyên mục "${activeCategory}":`, activeCategory);
-            if (!newName || !newName.trim() || newName.trim() === activeCategory) return;
-            
-            const trimmedNewName = newName.trim();
+            showCustomInput(
+                "✏️ Sửa Tên Chuyên Mục",
+                `Nhập tên mới cho chuyên mục "${activeCategory}":`,
+                activeCategory,
+                (newName) => {
+                    if (!newName || newName === activeCategory) return;
 
-            // Update articles category name
-            allArticles.forEach(art => {
-                if (art.category === activeCategory) {
-                    art.category = trimmedNewName;
-                    const parsedMsgs = parseMessagesFromContent(art.content);
-                    saveUpdatedMessagesToArticle(art, parsedMsgs);
+                    allArticles.forEach(art => {
+                        if (art.category === activeCategory) {
+                            art.category = newName;
+                            const parsedMsgs = parseMessagesFromContent(art.content);
+                            saveUpdatedMessagesToArticle(art, parsedMsgs);
+                        }
+                    });
+
+                    const idx = defaultCategories.indexOf(activeCategory);
+                    if (idx >= 0) defaultCategories[idx] = newName;
+                    
+                    refreshCategories();
+                    selectCategory(newName);
+                    showCustomAlert("Thành công", `Đã đổi tên chuyên mục thành "${newName}"!`);
                 }
-            });
-
-            // Update defaultCategories list
-            const idx = defaultCategories.indexOf(activeCategory);
-            if (idx >= 0) defaultCategories[idx] = trimmedNewName;
-            
-            refreshCategories();
-            selectCategory(trimmedNewName);
-            showCustomAlert("Thành công", `Đã đổi tên chuyên mục thành "${trimmedNewName}"!`);
+            );
         };
     }
 
@@ -405,7 +483,7 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List with Distraction-Free Search Mode & Category Actions
+    // Render Article Grid List
     function renderArticleList() {
         if (!articleGrid) return;
         
@@ -600,6 +678,7 @@ function initApp() {
         currentArticleId = id;
         if (readerCategory) readerCategory.textContent = article.category;
         if (readerTitle) readerTitle.textContent = article.title;
+        if (readerSearchInput) readerSearchInput.value = activeSearchQuery || '';
         
         if (readerThreadBadge) {
             if (article.isThread) {
@@ -1035,7 +1114,7 @@ function initApp() {
         };
     }
 
-    // Streamlined Topic Modal (Tự động mặc định chuyên mục đang mở & Đổi nút thành "Tạo Chủ Đề")
+    // Streamlined Topic Modal
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         
@@ -1044,7 +1123,6 @@ function initApp() {
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Lưu Chỉnh Sửa";
             if (editTopicId) editTopicId.value = articleToEdit.id;
             
-            // Show category dropdown for editing
             if (topicCategoryBadge) topicCategoryBadge.style.display = 'none';
             if (topicCategorySelect) {
                 topicCategorySelect.style.display = 'block';
@@ -1061,7 +1139,6 @@ function initApp() {
                 targetCat = activeCategory;
             }
 
-            // Lock to active category badge for clean simple UI!
             if (topicCategoryBadge && topicCategoryBadgeName) {
                 topicCategoryBadge.style.display = 'flex';
                 topicCategoryBadgeName.textContent = targetCat;
@@ -1262,27 +1339,41 @@ function initApp() {
         if (searchInput) searchInput.focus();
     };
 
-    // Universal Global Search Input Logic
-    if (searchInput) {
-        searchInput.oninput = (e) => {
-            searchQuery = e.target.value;
-            if (clearSearchBtn) {
-                clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+    // Universal Global Search Input Logic (Synced with Reader Search Bar)
+    function handleSearchInputChange(val) {
+        searchQuery = val;
+        if (searchInput) searchInput.value = searchQuery;
+        if (readerSearchInput) readerSearchInput.value = searchQuery;
+
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+        }
+        if (searchQuery.trim()) {
+            activeCategory = 'ALL';
+            renderNavigation();
+        }
+
+        if (currentArticleId && readerView && readerView.classList.contains('active')) {
+            const article = allArticles.find(a => a.id === currentArticleId);
+            if (article) {
+                renderReaderMessages(article, searchQuery);
             }
-            if (searchQuery.trim()) {
-                activeCategory = 'ALL';
-                renderNavigation();
-            }
+        } else {
             renderArticleList();
             showListView();
-        };
+        }
+    }
+
+    if (searchInput) {
+        searchInput.oninput = (e) => handleSearchInputChange(e.target.value);
+    }
+    if (readerSearchInput) {
+        readerSearchInput.oninput = (e) => handleSearchInputChange(e.target.value);
     }
 
     if (clearSearchBtn) {
         clearSearchBtn.onclick = () => {
-            if (searchInput) searchInput.value = '';
-            searchQuery = '';
-            clearSearchBtn.style.display = 'none';
+            handleSearchInputChange('');
             renderArticleList();
         };
     }

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - CATEGORY ACTIONS & STREAMLINED SEARCH MODE (V6)
+   PREMIUM LUXURY DESIGN SYSTEM - EMBEDDED READER SEARCH & CUSTOM INPUT MODAL (V7)
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -189,6 +189,7 @@ h1, h2, h3, h4 {
     min-height: 38px;
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
+    flex-shrink: 0;
 }
 
 .icon-btn {
@@ -582,7 +583,7 @@ h1, h2, h3, h4 {
     color: var(--text-primary);
 }
 
-/* Distraction-Free Search Mode (Hide extra clutters when searching on mobile & desktop) */
+/* Distraction-Free Search Mode */
 body.is-searching .hero-section {
     display: none !important;
 }
@@ -698,7 +699,7 @@ body.is-searching .category-actions-group {
 }
 .empty-icon { font-size: 44px; margin-bottom: 12px; }
 
-/* Sticky Reader Toolbar with Back Button */
+/* Sticky Reader Toolbar with Embedded Search Bar (Screenshot 1 Feature!) */
 .reader-toolbar {
     position: sticky;
     top: 63px;
@@ -714,6 +715,45 @@ body.is-searching .category-actions-group {
     gap: 12px;
     flex-wrap: wrap;
     transition: all 0.25s ease;
+}
+
+.reader-sticky-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 240px;
+}
+
+.reader-search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 340px;
+}
+
+.reader-search-icon {
+    position: absolute;
+    left: 12px;
+    color: var(--text-muted);
+}
+
+.reader-search-input-wrapper input {
+    width: 100%;
+    padding: 8px 12px 8px 34px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+.reader-search-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
 }
 
 .reader-actions {
@@ -1119,7 +1159,7 @@ body.is-searching .category-actions-group {
     gap: 10px;
 }
 
-/* Custom Centered Confirm Dialog */
+/* Custom Centered Confirm & Input Dialog */
 .confirm-card-centered {
     border-radius: var(--radius-xl);
     border: 1px solid var(--border);
@@ -1140,7 +1180,7 @@ body.is-searching .category-actions-group {
 }
 .confirm-icon { font-size: 24px; }
 .confirm-body {
-    padding: 24px 22px;
+    padding: 22px;
     font-size: 15px;
     color: var(--text-primary);
     line-height: 1.5;
@@ -1191,7 +1231,23 @@ mark.active-search-match {
         top: 59px;
         z-index: 46;
         padding: 6px 0;
+        gap: 8px;
     }
+
+    .reader-sticky-left {
+        min-width: 0;
+        gap: 6px;
+    }
+
+    .reader-search-input-wrapper {
+        max-width: 100%;
+    }
+
+    .reader-search-input-wrapper input {
+        padding: 7px 10px 7px 28px;
+        font-size: 12px;
+    }
+    .reader-search-icon { left: 8px; width: 14px; height: 14px; }
 
     .search-input-wrapper input {
         padding: 11px 38px 11px 40px;
