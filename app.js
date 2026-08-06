@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - MOBILE FIRST SEARCH OPTIMIZED (V11)
+// KNOWLEDGE BASE APPLICATION LOGIC - PASSWORD 2810 AUTH & AUDIT TRAIL (V14)
 // ==========================================================================
 
 function initApp() {
@@ -98,6 +98,93 @@ function initApp() {
     const customInputForm = document.getElementById('customInputForm');
     let onInputCallback = null;
 
+    // Mandatory First-Time Visitor Verification Modal Elements (Mật khẩu 2810 & Nickname)
+    const mandatoryNickModal = document.getElementById('mandatoryNickModal');
+    const mandatoryNickForm = document.getElementById('mandatoryNickForm');
+    const mandatoryPassInput = document.getElementById('mandatoryPassInput');
+    const mandatoryNickInput = document.getElementById('mandatoryNickInput');
+    const mandatoryPassError = document.getElementById('mandatoryPassError');
+
+    // Activity Log & Bell Elements (Lịch sử thao tác trực tuyến - Không cho phép xóa)
+    const activityBellBtn = document.getElementById('activityBellBtn');
+    const activityBadgeCount = document.getElementById('activityBadgeCount');
+    const activityLogModal = document.getElementById('activityLogModal');
+    const activityLogBackdrop = document.getElementById('activityLogBackdrop');
+    const activityLogBody = document.getElementById('activityLogBody');
+    const closeActivityLogModalBtn = document.getElementById('closeActivityLogModalBtn');
+    const cancelActivityLogModalBtn = document.getElementById('cancelActivityLogModalBtn');
+
+    // Activity Log Storage & Helper Functions
+    function getActivityLogs() {
+        try {
+            return JSON.parse(localStorage.getItem('APP_ACTIVITY_LOGS') || '[]');
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function logActivity(actionText) {
+        let logs = getActivityLogs();
+        const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+        logs.unshift({
+            time: nowStr,
+            user: currentUsername || 'DBC',
+            action: actionText
+        });
+        if (logs.length > 80) logs = logs.slice(0, 80);
+        try {
+            localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(logs));
+        } catch (e) {}
+        updateActivityBadge();
+    }
+
+    function updateActivityBadge() {
+        const logs = getActivityLogs();
+        if (activityBadgeCount) {
+            activityBadgeCount.textContent = logs.length;
+            activityBadgeCount.style.display = logs.length > 0 ? 'inline-block' : 'none';
+        }
+    }
+
+    function renderActivityLogs() {
+        if (!activityLogBody) return;
+        const logs = getActivityLogs();
+        activityLogBody.innerHTML = '';
+
+        if (logs.length === 0) {
+            activityLogBody.innerHTML = `
+                <div class="empty-card" style="padding: 30px 10px; border: none; background: transparent;">
+                    <div class="empty-icon">🔔</div>
+                    <p style="font-size: 13px; color: var(--text-muted);">Chưa có nhật ký thao tác nào.</p>
+                </div>
+            `;
+            return;
+        }
+
+        logs.forEach(log => {
+            const item = document.createElement('div');
+            item.className = 'log-item';
+            item.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="log-user">👤 ${escapeHtml(log.user)}</span>
+                    <span class="log-time">🕒 ${escapeHtml(log.time)}</span>
+                </div>
+                <div class="log-action">${escapeHtml(log.action)}</div>
+            `;
+            activityLogBody.appendChild(item);
+        });
+    }
+
+    if (activityBellBtn) {
+        activityBellBtn.onclick = () => {
+            renderActivityLogs();
+            if (activityLogModal) activityLogModal.classList.add('active');
+        };
+    }
+    if (closeActivityLogModalBtn) closeActivityLogModalBtn.onclick = () => activityLogModal.classList.remove('active');
+    if (cancelActivityLogModalBtn) cancelActivityLogModalBtn.onclick = () => activityLogModal.classList.remove('active');
+    if (activityLogBackdrop) activityLogBackdrop.onclick = () => activityLogModal.classList.remove('active');
+
     function showCustomConfirm(title, message, callback) {
         if (!customConfirmModal) {
             if (confirm(message)) callback();
@@ -178,8 +265,9 @@ function initApp() {
     // Image Upload Buffer
     let pendingBase64Images = [];
 
-    // Persistent Username Setup & First-Time Visit Prompt
+    // Persistent Username Setup & MANDATORY First-Time Visitor Password Verification (Mật khẩu 2810)
     let currentUsername = localStorage.getItem('PERSISTENT_USERNAME');
+    let isAuth = localStorage.getItem('APP_AUTHENTICATED');
 
     function setUsername(newUsername) {
         if (!newUsername || !newUsername.trim()) return;
@@ -193,20 +281,37 @@ function initApp() {
         if (activeAuthorTag) activeAuthorTag.textContent = `👤 Người viết: ${currentUsername}`;
     }
 
-    if (!currentUsername) {
-        setUsername("DBC");
-        setTimeout(() => {
-            showCustomInput(
-                "👤 Tên người dùng",
-                "Vui lòng nhập Tên tác giả / Nickname cố định của bạn:",
-                "DBC",
-                (val) => {
-                    setUsername(val);
-                }
-            );
-        }, 300);
+    // Mandatory Verification Check (Lần đầu vào web phải nhập Mật khẩu 2810 & Nickname)
+    if (!isAuth || !currentUsername) {
+        if (mandatoryNickModal) mandatoryNickModal.classList.add('active');
+        if (mandatoryPassInput && typeof mandatoryPassInput.focus === 'function') {
+            setTimeout(() => mandatoryPassInput.focus(), 150);
+        }
     } else {
         setUsername(currentUsername);
+    }
+
+    if (mandatoryNickForm) {
+        mandatoryNickForm.onsubmit = (e) => {
+            e.preventDefault();
+            const passVal = mandatoryPassInput ? mandatoryPassInput.value.trim() : '';
+            const nickVal = mandatoryNickInput ? mandatoryNickInput.value.trim() : '';
+
+            // Verify Password 2810
+            if (passVal !== '2810') {
+                if (mandatoryPassError) mandatoryPassError.style.display = 'block';
+                return;
+            }
+
+            if (mandatoryPassError) mandatoryPassError.style.display = 'none';
+
+            if (nickVal) {
+                setUsername(nickVal);
+                localStorage.setItem('APP_AUTHENTICATED', 'true');
+                logActivity(`Xác thực thành công mật khẩu & Khởi tạo Nickname tác giả: "${nickVal}"`);
+                if (mandatoryNickModal) mandatoryNickModal.classList.remove('active');
+            }
+        };
     }
 
     if (userProfileCard) {
@@ -216,18 +321,40 @@ function initApp() {
                 "Nhập Tên tác giả / Nickname cố định của bạn:",
                 currentUsername || "DBC",
                 (val) => {
+                    const oldNick = currentUsername;
                     setUsername(val);
+                    logActivity(`Đổi Nickname từ "${oldNick}" thành "${val}"`);
                 }
             );
         };
     }
 
-    // View Navigation Helpers
+    // View Navigation Helpers & URL Hash Router Persistence
+    function updateUrlHash(type, param = '') {
+        if (window.history && typeof window.history.replaceState === 'function') {
+            if (type === 'article') {
+                window.history.replaceState(null, '', `#article/${param}`);
+            } else if (type === 'search') {
+                window.history.replaceState(null, '', `#search/${encodeURIComponent(param)}`);
+            } else if (type === 'category') {
+                window.history.replaceState(null, '', `#category/${encodeURIComponent(param)}`);
+            } else {
+                window.history.replaceState(null, '', '#');
+            }
+        }
+    }
+
     function showListView() {
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
         if (heroBanner && !searchQuery.trim()) heroBanner.style.display = 'block';
         if (backToListBtnHeader) backToListBtnHeader.style.display = 'none';
+
+        if (searchQuery.trim()) {
+            updateUrlHash('search', searchQuery.trim());
+        } else {
+            updateUrlHash('category', activeCategory);
+        }
     }
 
     // Theme Management (Light / Dark)
@@ -389,10 +516,11 @@ function initApp() {
             });
         }
 
-        // Hero Stats
+        // Hero Stats & Activity Badge
         if (statArticlesCount) statArticlesCount.textContent = allArticles.length;
         if (statCategoryCount) statCategoryCount.textContent = categories.length;
         if (statSidebarArticles) statSidebarArticles.textContent = `Đã lưu ${allArticles.length} chủ đề`;
+        updateActivityBadge();
     }
 
     // Select Category & AUTO-CLEAR SEARCH QUERY
@@ -426,6 +554,7 @@ function initApp() {
                 activeCategory,
                 (newName) => {
                     if (!newName || newName === activeCategory) return;
+                    const oldCat = activeCategory;
 
                     allArticles.forEach(art => {
                         if (art.category === activeCategory) {
@@ -440,6 +569,7 @@ function initApp() {
                     
                     refreshCategories();
                     selectCategory(newName);
+                    logActivity(`Đổi tên chuyên mục "${oldCat}" thành "${newName}"`);
                     showCustomAlert("Thành công", `Đã đổi tên chuyên mục thành "${newName}"!`);
                 }
             );
@@ -453,6 +583,7 @@ function initApp() {
                 "🗑️ Xóa Chuyên Mục",
                 `Bạn có chắc chắn muốn xóa chuyên mục "${activeCategory}" và tất cả các chủ đề bên trong không?`,
                 () => {
+                    const deletedName = activeCategory;
                     const articlesToDelete = allArticles.filter(a => a.category === activeCategory);
                     articlesToDelete.forEach(art => {
                         deletedArticleIds.push(art.id);
@@ -467,6 +598,7 @@ function initApp() {
 
                     allArticles = getCombinedArticles();
                     refreshCategories();
+                    logActivity(`Xóa chuyên mục "${deletedName}" (${articlesToDelete.length} chủ đề)`);
                     selectCategory('ALL');
                 }
             );
@@ -522,7 +654,7 @@ function initApp() {
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
                     <h3>Không tìm thấy nội dung phù hợp</h3>
-                    <p>Hãy thử tìm với từ khóa khác (không phân biệt dấu tiếng Việt) hoặc bấm nút <b>"➕ Thêm Chủ Đề Mới"</b>.</p>
+                    <p>Hãy thử tìm với từ khóa khác (không phân biệt dấu tiếng Việt) hoặc bấm nút <b>"➕ Tạo chủ đề"</b>.</p>
                 `;
             }
             return;
@@ -675,6 +807,9 @@ function initApp() {
 
         // Show back button on the single global sticky search header!
         if (backToListBtnHeader) backToListBtnHeader.style.display = 'inline-flex';
+
+        // Update URL Hash state for refresh persistence!
+        updateUrlHash('article', id);
 
         if (targetMsgIdx !== null && targetMsgIdx !== undefined) {
             setTimeout(() => {
@@ -874,6 +1009,7 @@ function initApp() {
                             if (updatedText) {
                                 parsedMsgs[idx].bodyText = updatedText;
                                 saveUpdatedMessagesToArticle(article, parsedMsgs);
+                                logActivity(`Sửa đoạn luận giải trong chủ đề "${article.title}"`);
                             }
                         };
                     }
@@ -890,6 +1026,7 @@ function initApp() {
                         () => {
                             parsedMsgs.splice(idx, 1);
                             saveUpdatedMessagesToArticle(article, parsedMsgs);
+                            logActivity(`Xóa đoạn luận giải trong chủ đề "${article.title}"`);
                         }
                     );
                 };
@@ -1054,6 +1191,7 @@ function initApp() {
                 document.activeElement.blur();
             }
 
+            logActivity(`Đăng luận giải mới vào chủ đề "${article.title}"`);
             renderReaderMessages(article);
         };
     }
@@ -1090,6 +1228,7 @@ function initApp() {
             refreshCategories();
             renderNavigation();
             selectCategory(newCat);
+            logActivity(`Tạo chuyên mục mới "${newCat}"`);
             if (newCategoryTitleInput) newCategoryTitleInput.value = "";
             categoryModal.classList.remove('active');
         };
@@ -1203,6 +1342,7 @@ function initApp() {
                         customArticles.push(updatedArt);
                     }
                     targetId = id;
+                    logActivity(`Chỉnh sửa tên chủ đề thành "${title}"`);
                 }
             } else {
                 const newId = `custom_${Date.now()}`;
@@ -1220,6 +1360,7 @@ function initApp() {
                 };
                 customArticles.push(newArt);
                 targetId = newId;
+                logActivity(`Tạo chủ đề mới "${title}" trong chuyên mục "${cat}"`);
             }
 
             try {
@@ -1241,6 +1382,9 @@ function initApp() {
     if (deleteArticleBtn) {
         deleteArticleBtn.onclick = () => {
             if (!currentArticleId) return;
+            const targetArt = allArticles.find(a => a.id === currentArticleId);
+            const topicTitle = targetArt ? targetArt.title : '';
+
             showCustomConfirm(
                 "🗑️ Xóa Toàn Bộ Chủ Đề",
                 "Bạn có chắc chắn muốn xóa toàn bộ chủ đề này khỏi thư viện?",
@@ -1250,6 +1394,7 @@ function initApp() {
                         localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
                     } catch (e) {}
                     
+                    logActivity(`Xóa toàn bộ chủ đề "${topicTitle}"`);
                     allArticles = getCombinedArticles();
                     refreshCategories();
                     renderNavigation();
@@ -1275,6 +1420,7 @@ function initApp() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            logActivity(`Tải file .md bài viết "${article.title}"`);
         };
     }
 
@@ -1294,6 +1440,7 @@ function initApp() {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+            logActivity(`Xuất dữ liệu sao lưu hệ thống`);
         };
     }
 
@@ -1311,7 +1458,7 @@ function initApp() {
     if (closeSidebarBtn) closeSidebarBtn.onclick = closeMobileSidebar;
     if (sidebarOverlay) sidebarOverlay.onclick = closeMobileSidebar;
 
-    // SINGLE GLOBAL SEARCH INPUT LOGIC WITH KEYBOARD DISMISS ON ENTER (Ảnh 1 Fix!)
+    // SINGLE GLOBAL SEARCH INPUT LOGIC WITH KEYBOARD DISMISS ON ENTER
     if (searchInput) {
         searchInput.oninput = (e) => {
             searchQuery = e.target.value;
@@ -1328,7 +1475,6 @@ function initApp() {
             renderArticleList();
         };
 
-        // AUTO-DISMISS SOFT KEYBOARD WHEN PRESSING ENTER/RETURN (Ảnh 1 Solution)
         searchInput.onkeydown = (e) => {
             if (e.key === 'Enter' || e.keyCode === 13) {
                 if (typeof searchInput.blur === 'function') {
@@ -1350,9 +1496,43 @@ function initApp() {
 
     if (backToListBtnHeader) backToListBtnHeader.onclick = showListView;
 
-    // Initial Render Execution
+    // RESTORE STATE FROM URL HASH ON PAGE LOAD / REFRESH!
+    function restoreStateFromHash() {
+        const hash = (window.location && window.location.hash) ? window.location.hash : '';
+        if (hash.startsWith('#article/')) {
+            const artId = hash.replace('#article/', '');
+            const targetArt = allArticles.find(a => a.id === artId);
+            if (targetArt) {
+                openReaderView(artId);
+                return true;
+            }
+        } else if (hash.startsWith('#search/')) {
+            const queryVal = decodeURIComponent(hash.replace('#search/', ''));
+            if (queryVal) {
+                if (searchInput) searchInput.value = queryVal;
+                searchQuery = queryVal;
+                if (clearSearchBtn) clearSearchBtn.style.display = 'block';
+                renderArticleList();
+                showListView();
+                return true;
+            }
+        } else if (hash.startsWith('#category/')) {
+            const catVal = decodeURIComponent(hash.replace('#category/', ''));
+            if (catVal && categories.includes(catVal)) {
+                selectCategory(catVal);
+                return true;
+            }
+        }
+        return false;
+    }
+
     renderNavigation();
-    renderArticleList();
+    
+    if (!restoreStateFromHash()) {
+        renderArticleList();
+    }
+
+    window.onhashchange = restoreStateFromHash;
     console.log("App initialization completed. Articles loaded:", allArticles.length);
 }
 

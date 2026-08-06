@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PREMIUM LUXURY DESIGN SYSTEM - MOBILE FIRST SEARCH OPTIMIZED (V9)
+   PREMIUM LUXURY DESIGN SYSTEM - MANDATORY NICK MODAL & ACTIVITY LOG (V11)
    ========================================================================== */
 
 /* Light Theme Variables */
@@ -9,7 +9,7 @@
     --bg-card-hover: #FFFFFF;
     --bg-sidebar: #FFFFFF;
     --bg-input: #F1F5F9;
-    --bg-header: rgba(255, 255, 255, 0.92);
+    --bg-header: rgba(255, 255, 255, 0.95);
     --bg-pill: #FFFFFF;
     --bg-msg: #F8FAFC;
     
@@ -49,7 +49,7 @@ html[data-theme="dark"] {
     --bg-card-hover: #1A233A;
     --bg-sidebar: #111726;
     --bg-input: #1E293B;
-    --bg-header: rgba(17, 23, 38, 0.92);
+    --bg-header: rgba(17, 23, 38, 0.95);
     --bg-pill: #1E293B;
     --bg-msg: #1E293B;
     
@@ -92,7 +92,7 @@ body {
     overflow-x: hidden;
 }
 
-/* Strict Mobile Word Break Fix */
+/* Strict Mobile Word Break & List Boundary Fix */
 p, a, code, pre, span, div, h1, h2, h3, h4, .msg-body, .reader-body, .card-snippet, .snippet-item {
     word-break: break-word;
     overflow-wrap: anywhere;
@@ -220,12 +220,16 @@ h1, h2, h3, h4 {
     top: 0;
     z-index: 50;
     box-shadow: var(--shadow-sm);
+    height: 56px;
+    display: flex;
+    align-items: center;
 }
 
 .header-container {
     max-width: 1280px;
+    width: 100%;
     margin: 0 auto;
-    padding: 10px 16px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -238,14 +242,15 @@ h1, h2, h3, h4 {
 }
 
 .brand-badge {
-    font-size: 22px;
-    width: 40px;
-    height: 40px;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
     background: var(--primary-light);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .brand-text {
@@ -258,12 +263,14 @@ h1, h2, h3, h4 {
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1.2;
+    white-space: nowrap;
 }
 
 .brand-sub {
     font-size: 11px;
     color: var(--text-muted);
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .header-controls {
@@ -289,9 +296,9 @@ h1, h2, h3, h4 {
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
-    height: calc(100vh - 61px);
+    height: calc(100vh - 56px);
     position: sticky;
-    top: 61px;
+    top: 56px;
 }
 
 .sidebar-header {
@@ -375,7 +382,61 @@ h1, h2, h3, h4 {
 .sidebar-footer {
     padding: 14px;
     border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
+
+/* Activity History Bell Button (Góc dưới bên trái trên nickname) */
+.activity-bell-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 12px;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: var(--font-sans);
+    box-shadow: var(--shadow-sm);
+}
+.activity-bell-btn:hover {
+    border-color: var(--primary);
+    background-color: var(--primary-light);
+}
+
+.bell-btn-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.bell-icon { font-size: 16px; }
+.bell-text { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.bell-badge {
+    background: #EF4444;
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: var(--radius-full);
+}
+
+/* Activity Log Items */
+.log-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.log-item:last-child { border-bottom: none; }
+.log-time { font-size: 11px; color: var(--text-muted); }
+.log-user { font-weight: 700; color: var(--primary-text); }
+.log-action { color: var(--text-primary); line-height: 1.4; }
+
 .author-card {
     display: flex;
     align-items: center;
@@ -466,14 +527,14 @@ h1, h2, h3, h4 {
 }
 .stat-pill strong { color: #FBBF24; }
 
-/* PERFECT STICKY SEARCH SECTION (Fix góc bị cắt cut off - Ảnh 3 Fix!) */
+/* STICKY SEARCH SECTION */
 .search-section {
     position: sticky;
-    top: 61px;
+    top: 56px;
     z-index: 45;
     background-color: var(--bg-app);
-    padding: 8px 0;
-    margin-top: -4px;
+    padding: 10px 0;
+    margin-top: -6px;
     transition: all 0.25s ease;
 }
 
@@ -580,7 +641,7 @@ h1, h2, h3, h4 {
     font-weight: 600;
 }
 
-/* Distraction-Free Search Mode (Ẩn hoàn toàn nút Thêm Bài khi gõ tìm kiếm - Ảnh 1 Fix!) */
+/* Distraction-Free Search Mode */
 body.is-searching .hero-section,
 body.is-searching .category-actions-group,
 body.is-searching #headerRightActions {
@@ -791,44 +852,61 @@ body.is-searching #headerRightActions {
     100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.25); }
 }
 
+/* MESSAGE CARD HEADER FIX */
 .msg-block-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
+    gap: 8px;
     padding-bottom: 8px;
     border-bottom: 1px dashed var(--border);
+    flex-wrap: nowrap;
 }
 
 .msg-author-tag {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
 }
 .msg-author-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     color: var(--primary-text);
+    white-space: nowrap;
 }
 .msg-timestamp {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
     background: var(--bg-input);
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: var(--radius-full);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .msg-actions {
     display: flex;
-    gap: 6px;
-    opacity: 0.85;
+    gap: 4px;
+    flex-shrink: 0;
 }
-.msg-actions:hover { opacity: 1; }
 
+/* MARKDOWN CONTENT & NUMBERED LIST BOUNDARY FIX */
 .msg-body {
     color: var(--text-primary);
     font-size: 15px;
     line-height: 1.7;
+}
+
+.msg-body ol, .msg-body ul {
+    padding-left: 22px;
+    margin: 8px 0;
+}
+
+.msg-body li {
+    margin-bottom: 6px;
 }
 
 .msg-body img {
@@ -1121,23 +1199,34 @@ mark.active-search-match {
         position: sticky;
         top: 0;
         z-index: 50;
+        height: 54px;
+    }
+
+    .brand-title {
+        font-size: 14px;
+    }
+
+    .btn-sm-mobile {
+        padding: 6px 10px;
+        min-height: 34px;
+        font-size: 12px;
     }
     
     .search-section {
-        top: 57px;
+        top: 54px;
         z-index: 45;
-        padding: 4px 0;
+        padding: 6px 0;
     }
 
     .search-input-wrapper input {
-        padding: 11px 38px 11px 40px;
+        padding: 10px 36px 10px 38px;
         font-size: 14px;
         border-radius: var(--radius-md);
     }
-    .search-icon { left: 12px; }
+    .search-icon { left: 10px; }
 
     .btn-back span { display: none; }
-    .btn-back { padding: 8px 10px; min-height: 40px; }
+    .btn-back { padding: 8px 10px; min-height: 38px; }
 
     .app-sidebar {
         position: fixed;
@@ -1158,8 +1247,8 @@ mark.active-search-match {
     }
     .sidebar-overlay.active { display: block; }
 
-    .hero-section { padding: 18px 14px; }
-    .hero-title { font-size: 19px; }
+    .hero-section { padding: 16px 12px; }
+    .hero-title { font-size: 18px; }
     .hero-desc { font-size: 12px; }
     
     .app-main { padding: 10px; padding-bottom: 24px; gap: 10px; }
