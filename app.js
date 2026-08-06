@@ -1,96 +1,12 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - BULLETPROOF EDITION V3
+// KNOWLEDGE BASE APPLICATION LOGIC - FIXED EDITION (NO TDZ ERROR)
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
 
-    // 1. Theme Management (Light / Dark)
-    const currentTheme = localStorage.getItem('APP_THEME') || 'light';
-    document.documentElement.setAttribute('data-theme', currentTheme);
-    
+    // DOM Elements - Select all first
     const themeToggleBtn = document.getElementById('themeToggleBtn');
-    if (themeToggleBtn) {
-        themeToggleBtn.innerHTML = currentTheme === 'dark' ? '☀️' : '🌙';
-        themeToggleBtn.onclick = () => {
-            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('APP_THEME', theme);
-            themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
-        };
-    }
-
-    // 2. Data Initialization
-    let defaultArticles = window.INITIAL_ARTICLES || [];
-    let defaultCategories = window.INITIAL_CATEGORIES || [];
-
-    // Diagnostic Check: If data_store.js was not uploaded/loaded
-    if (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length === 0) {
-        console.error("WARNING: data_store.js is missing or empty! Please make sure data_store.js is uploaded to GitHub.");
-        const noResults = document.getElementById('noResults');
-        if (noResults) {
-            noResults.style.display = 'block';
-            noResults.innerHTML = `
-                <div class="empty-icon">⚠️</div>
-                <h3 style="color:#DC2626;">Chưa tìm thấy file dữ liệu data_store.js!</h3>
-                <p>Bạn hãy kiểm tra lại và upload file <b>data_store.js</b> lên GitHub cùng với <b>index.html</b> nhé.</p>
-            `;
-        }
-    }
-
-    let customArticles = [];
-    let deletedArticleIds = [];
-
-    try {
-        customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
-    } catch (e) {
-        console.warn('Cannot parse CUSTOM_ARTICLES from localStorage:', e);
-    }
-
-    try {
-        deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
-    } catch (e) {
-        console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
-    }
-
-    function getCombinedArticles() {
-        let articlesMap = new Map();
-        
-        defaultArticles.forEach(art => {
-            if (art && art.id && !deletedArticleIds.includes(art.id)) {
-                articlesMap.set(art.id, art);
-            }
-        });
-
-        customArticles.forEach(art => {
-            if (art && art.id && !deletedArticleIds.includes(art.id)) {
-                articlesMap.set(art.id, art);
-            }
-        });
-
-        return Array.from(articlesMap.values());
-    }
-
-    let allArticles = getCombinedArticles();
-    let categories = [];
-
-    function refreshCategories() {
-        let catSet = new Set(defaultCategories);
-        allArticles.forEach(a => {
-            if (a && a.category) catSet.add(a.category);
-        });
-        categories = Array.from(catSet).sort();
-    }
-    refreshCategories();
-
-    // App Navigation State
-    let activeCategory = 'ALL';
-    let searchQuery = '';
-    let sortMode = 'default';
-    let currentArticleId = null;
-    let readerFontSize = 16;
-
-    // DOM Elements
     const mobileMenuBtn = document.getElementById('mobileMenuBtn');
     const closeSidebarBtn = document.getElementById('closeSidebarBtn');
     const appSidebar = document.getElementById('appSidebar');
@@ -150,6 +66,86 @@ function initApp() {
     const navCategoriesBtn = document.getElementById('navCategoriesBtn');
     const navAddBtn = document.getElementById('navAddBtn');
     const navSearchFocusBtn = document.getElementById('navSearchFocusBtn');
+
+    // 1. Theme Management (Light / Dark)
+    function updateThemeIcon(theme) {
+        if (themeToggleBtn) {
+            themeToggleBtn.innerHTML = theme === 'dark' ? '☀️' : '🌙';
+        }
+    }
+
+    const currentTheme = localStorage.getItem('APP_THEME') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
+    updateThemeIcon(currentTheme);
+    
+    if (themeToggleBtn) {
+        themeToggleBtn.onclick = () => {
+            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('APP_THEME', theme);
+            updateThemeIcon(theme);
+        };
+    }
+
+    // 2. Data Initialization
+    let defaultArticles = window.INITIAL_ARTICLES || [];
+    let defaultCategories = window.INITIAL_CATEGORIES || [];
+
+    if (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length === 0) {
+        console.warn("data_store.js not detected yet!");
+    }
+
+    let customArticles = [];
+    let deletedArticleIds = [];
+
+    try {
+        customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]');
+    } catch (e) {
+        console.warn('Cannot parse CUSTOM_ARTICLES from localStorage:', e);
+    }
+
+    try {
+        deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]');
+    } catch (e) {
+        console.warn('Cannot parse DELETED_ARTICLE_IDS from localStorage:', e);
+    }
+
+    function getCombinedArticles() {
+        let articlesMap = new Map();
+        
+        defaultArticles.forEach(art => {
+            if (art && art.id && !deletedArticleIds.includes(art.id)) {
+                articlesMap.set(art.id, art);
+            }
+        });
+
+        customArticles.forEach(art => {
+            if (art && art.id && !deletedArticleIds.includes(art.id)) {
+                articlesMap.set(art.id, art);
+            }
+        });
+
+        return Array.from(articlesMap.values());
+    }
+
+    let allArticles = getCombinedArticles();
+    let categories = [];
+
+    function refreshCategories() {
+        let catSet = new Set(defaultCategories);
+        allArticles.forEach(a => {
+            if (a && a.category) catSet.add(a.category);
+        });
+        categories = Array.from(catSet).sort();
+    }
+    refreshCategories();
+
+    // App Navigation State
+    let activeCategory = 'ALL';
+    let searchQuery = '';
+    let sortMode = 'default';
+    let currentArticleId = null;
+    let readerFontSize = 16;
 
     // 3. Render Navigation Bars
     function renderNavigation(filterFilterText = '') {
@@ -270,7 +266,7 @@ function initApp() {
         articleGrid.innerHTML = '';
 
         if (filtered.length === 0) {
-            if (noResults && (!window.INITIAL_ARTICLES || window.INITIAL_ARTICLES.length > 0)) {
+            if (noResults) {
                 noResults.style.display = 'block';
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
