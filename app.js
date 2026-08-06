@@ -1,9 +1,9 @@
 // ==========================================================================
-// BÁCH KHOA HUYỀN HỌC - BULLETPROOF REALTIME FIREBASE SYNC ENGINE (V25)
+// BÁCH KHOA HUYỀN HỌC - ZERO-DELAY OPTIMISTIC REALTIME SYNC ENGINE (V26)
 // ==========================================================================
 
 function initApp() {
-    console.log("Initializing Bách Khoa Huyền Học App with Bulletproof Realtime Firebase Sync...");
+    console.log("Initializing Bách Khoa Huyền Học App with Zero-Delay Optimistic UI & Cloud Sync...");
 
     // Official User's Google Firebase Cloud Database REST Endpoints
     const FIREBASE_BASE_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app';
@@ -184,6 +184,7 @@ function initApp() {
                     }
                     if (cloudLogs.length > 0) {
                         cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                        if (cloudLogs.length > 20) cloudLogs = cloudLogs.slice(0, 20);
                         localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                         updateActivityBadge();
                         return cloudLogs;
@@ -205,43 +206,26 @@ function initApp() {
             action: actionText
         };
 
-        let currentLogs = [];
-        try {
-            if (typeof fetch === 'function') {
-                const res = await fetch(FIREBASE_LOGS_URL);
-                if (res.ok) {
-                    const data = await res.json();
-                    if (Array.isArray(data)) currentLogs = data;
-                    else if (data && typeof data === 'object') currentLogs = Object.values(data);
-                }
-            }
-        } catch (e) {}
-
-        if (currentLogs.length === 0) {
-            currentLogs = getLocalActivityLogs();
-        }
-
+        let currentLogs = getLocalActivityLogs();
         currentLogs.unshift(logItem);
-        if (currentLogs.length > 100) currentLogs = currentLogs.slice(0, 100);
+        if (currentLogs.length > 20) currentLogs = currentLogs.slice(0, 20);
 
         try {
             localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(currentLogs));
         } catch (e) {}
         updateActivityBadge();
 
-        // Asynchronously Update Google Firebase Cloud
-        try {
-            if (typeof fetch === 'function') {
-                fetch(FIREBASE_LOGS_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(currentLogs)
-                }).catch(err => console.warn("Firebase Cloud log PUT warning:", err));
-            }
-        } catch (err) {}
+        // Asynchronously Update Google Firebase Cloud in background
+        if (typeof fetch === 'function') {
+            fetch(FIREBASE_LOGS_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(currentLogs)
+            }).catch(err => console.warn("Firebase Cloud log PUT warning:", err));
+        }
     }
 
     function updateActivityBadge() {
@@ -506,8 +490,8 @@ function initApp() {
     async function syncAllFromCloud() {
         if (typeof fetch !== 'function') return;
 
-        // Anti-Race Condition Guard: If local machine wrote to Cloud within 4 seconds, skip GET overwriting!
-        if (Date.now() - lastCloudWriteTime < 4000) {
+        // Anti-Race Condition Guard: If local machine wrote to Cloud within 5 seconds, skip GET overwriting!
+        if (Date.now() - lastCloudWriteTime < 5000) {
             return;
         }
 
@@ -571,6 +555,7 @@ function initApp() {
                 else if (logData && typeof logData === 'object') cloudLogs = Object.values(logData);
                 if (cloudLogs.length > 0) {
                     cloudLogs.sort((a, b) => new Date(b.time) - new Date(a.time));
+                    if (cloudLogs.length > 20) cloudLogs = cloudLogs.slice(0, 20);
                     localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                     updateActivityBadge();
                 }
@@ -593,53 +578,46 @@ function initApp() {
         }
     }
 
-    async function saveCategoriesToCloud(catsList) {
+    // NON-BLOCKING BACKGROUND CLOUD PUSHES FOR 0MS INSTANT RESPONSIVENESS
+    function saveCategoriesToCloud(catsList) {
         lastCloudWriteTime = Date.now();
         customCategories = catsList;
-        localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(catsList));
+        try { localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(catsList)); } catch (e) {}
         if (typeof fetch === 'function') {
-            try {
-                await fetch(FIREBASE_CATEGORIES_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(catsList)
-                });
-            } catch (e) {}
+            fetch(FIREBASE_CATEGORIES_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(catsList)
+            }).catch(e => {});
         }
     }
 
-    async function saveDeletedIdsToCloud(delList) {
+    function saveDeletedIdsToCloud(delList) {
         lastCloudWriteTime = Date.now();
         deletedArticleIds = delList;
-        localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(delList));
+        try { localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(delList)); } catch (e) {}
         if (typeof fetch === 'function') {
-            try {
-                await fetch(FIREBASE_DELETED_URL, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(delList)
-                });
-            } catch (e) {}
+            fetch(FIREBASE_DELETED_URL, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(delList)
+            }).catch(e => {});
         }
     }
 
-    async function saveCustomArticlesToCloud(articlesList) {
+    function saveCustomArticlesToCloud(articlesList) {
         lastCloudWriteTime = Date.now();
         customArticles = articlesList;
-        localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(articlesList));
+        try { localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(articlesList)); } catch (e) {}
         if (typeof fetch === 'function') {
-            try {
-                await fetch(FIREBASE_ARTICLES_URL, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify(articlesList)
-                });
-            } catch (err) {
-                console.warn("Firebase Cloud custom articles PUT warning:", err);
-            }
+            fetch(FIREBASE_ARTICLES_URL, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(articlesList)
+            }).catch(err => console.warn("Firebase Cloud custom articles PUT warning:", err));
         }
     }
 
@@ -847,7 +825,7 @@ function initApp() {
                 "✏️ Sửa Tên Chuyên Mục",
                 `Nhập tên mới cho chuyên mục "${activeCategory}":`,
                 activeCategory,
-                async (newName) => {
+                (newName) => {
                     if (!newName || newName === activeCategory) return;
                     const oldCat = activeCategory;
 
@@ -866,8 +844,9 @@ function initApp() {
                     if (cIdx >= 0) customCategories[cIdx] = newName;
                     else customCategories.push(newName);
 
-                    await saveCategoriesToCloud(customCategories);
-                    await saveCustomArticlesToCloud(customArticles);
+                    // OPTIMISTIC INSTANT UI UPDATES (0ms delay)
+                    saveCategoriesToCloud(customCategories);
+                    saveCustomArticlesToCloud(customArticles);
                     
                     refreshCategories();
                     selectCategory(newName);
@@ -884,7 +863,7 @@ function initApp() {
             showCustomConfirm(
                 "🗑️ Xóa Chuyên Mục",
                 `Bạn có chắc chắn muốn xóa chuyên mục "${activeCategory}" và tất cả các chủ đề bên trong không?`,
-                async () => {
+                () => {
                     const deletedName = activeCategory;
                     const articlesToDelete = allArticles.filter(a => a.category === activeCategory);
                     articlesToDelete.forEach(art => {
@@ -893,7 +872,7 @@ function initApp() {
                         }
                     });
 
-                    await saveDeletedIdsToCloud(deletedArticleIds);
+                    saveDeletedIdsToCloud(deletedArticleIds);
 
                     const catIdx = defaultCategories.indexOf(activeCategory);
                     if (catIdx >= 0) defaultCategories.splice(catIdx, 1);
@@ -901,7 +880,7 @@ function initApp() {
                     const cIdx = customCategories.indexOf(activeCategory);
                     if (cIdx >= 0) customCategories.splice(cIdx, 1);
 
-                    await saveCategoriesToCloud(customCategories);
+                    saveCategoriesToCloud(customCategories);
 
                     allArticles = getCombinedArticles();
                     refreshCategories();
@@ -1348,7 +1327,7 @@ function initApp() {
                     }
 
                     if (saveInlineBtn) {
-                        saveInlineBtn.onclick = async () => {
+                        saveInlineBtn.onclick = () => {
                             let updatedText = textarea.value.trim();
                             if (editImagesList.length > 0) {
                                 editImagesList.forEach((imgUrl, i) => {
@@ -1358,7 +1337,7 @@ function initApp() {
 
                             if (updatedText) {
                                 parsedMsgs[idx].bodyText = updatedText;
-                                await saveUpdatedMessagesToArticle(article, parsedMsgs);
+                                saveUpdatedMessagesToArticle(article, parsedMsgs);
                                 logActivity(`Sửa đoạn luận giải trong chủ đề "${article.title}"`);
                             }
                         };
@@ -1373,9 +1352,9 @@ function initApp() {
                     showCustomConfirm(
                         "🗑️ Xóa luận giải",
                         "Bạn có chắc chắn muốn xóa đoạn luận giải này không?",
-                        async () => {
+                        () => {
                             parsedMsgs.splice(idx, 1);
-                            await saveUpdatedMessagesToArticle(article, parsedMsgs);
+                            saveUpdatedMessagesToArticle(article, parsedMsgs);
                             logActivity(`Xóa đoạn luận giải trong chủ đề "${article.title}"`);
                         }
                     );
@@ -1386,7 +1365,7 @@ function initApp() {
         });
     }
 
-    async function saveUpdatedMessagesToArticle(article, messagesList) {
+    function saveUpdatedMessagesToArticle(article, messagesList) {
         const headerText = `# ${article.category} / #${article.title}`;
         
         let newContent = headerText + '\n\n';
@@ -1405,7 +1384,8 @@ function initApp() {
             customArticles.push(article);
         }
         
-        await saveCustomArticlesToCloud(customArticles);
+        // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
+        saveCustomArticlesToCloud(customArticles);
         allArticles = getCombinedArticles();
         renderReaderMessages(article);
     }
@@ -1496,7 +1476,7 @@ function initApp() {
 
     // Submit Inline Quick Add Message with Hanoi Timezone Timestamp
     if (submitInlineMsgBtn) {
-        submitInlineMsgBtn.onclick = async () => {
+        submitInlineMsgBtn.onclick = () => {
             if (!currentArticleId) return;
             const article = allArticles.find(a => a.id === currentArticleId);
             if (!article) return;
@@ -1530,7 +1510,8 @@ function initApp() {
                 customArticles.push(article);
             }
             
-            await saveCustomArticlesToCloud(customArticles);
+            // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
+            saveCustomArticlesToCloud(customArticles);
             allArticles = getCombinedArticles();
 
             if (inlineMsgTextarea) inlineMsgTextarea.value = '';
@@ -1558,7 +1539,7 @@ function initApp() {
     if (categoryModalBackdrop) categoryModalBackdrop.onclick = () => categoryModal.classList.remove('active');
 
     if (categoryForm) {
-        categoryForm.onsubmit = async (e) => {
+        categoryForm.onsubmit = (e) => {
             e.preventDefault();
             const newCat = newCategoryTitleInput ? newCategoryTitleInput.value.trim() : "";
             if (!newCat) return;
@@ -1576,9 +1557,10 @@ function initApp() {
 
             if (!customCategories.includes(newCat)) {
                 customCategories.push(newCat);
-                await saveCategoriesToCloud(customCategories);
+                saveCategoriesToCloud(customCategories);
             }
 
+            // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
             refreshCategories();
             renderNavigation();
             selectCategory(newCat);
@@ -1645,7 +1627,7 @@ function initApp() {
     if (topicModalBackdrop) topicModalBackdrop.onclick = () => topicModal.classList.remove('active');
 
     if (topicForm) {
-        topicForm.onsubmit = async (e) => {
+        topicForm.onsubmit = (e) => {
             e.preventDefault();
             const id = editTopicId ? editTopicId.value : "";
             
@@ -1688,7 +1670,7 @@ function initApp() {
                         title: title,
                         channel: title
                     };
-                    await saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
+                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
 
                     if (index >= 0) {
                         customArticles[index] = updatedArt;
@@ -1717,7 +1699,8 @@ function initApp() {
                 logActivity(`Tạo chủ đề mới "${title}" trong chuyên mục "${cat}"`);
             }
 
-            await saveCustomArticlesToCloud(customArticles);
+            // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
+            saveCustomArticlesToCloud(customArticles);
 
             allArticles = getCombinedArticles();
             refreshCategories();
@@ -1740,18 +1723,19 @@ function initApp() {
             showCustomConfirm(
                 "🗑️ Xóa Toàn Bộ Chủ Đề",
                 "Bạn có chắc chắn muốn xóa toàn bộ chủ đề này khỏi thư viện?",
-                async () => {
+                () => {
                     if (!deletedArticleIds.includes(currentArticleId)) {
                         deletedArticleIds.push(currentArticleId);
                     }
-                    await saveDeletedIdsToCloud(deletedArticleIds);
+                    saveDeletedIdsToCloud(deletedArticleIds);
 
                     const custIdx = customArticles.findIndex(a => a.id === currentArticleId);
                     if (custIdx >= 0) {
                         customArticles.splice(custIdx, 1);
-                        await saveCustomArticlesToCloud(customArticles);
+                        saveCustomArticlesToCloud(customArticles);
                     }
 
+                    // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
                     logActivity(`Xóa toàn bộ chủ đề "${topicTitle}"`);
                     allArticles = getCombinedArticles();
                     refreshCategories();
@@ -1906,7 +1890,7 @@ function initApp() {
     setInterval(syncAllFromCloud, 3000);
 
     window.onhashchange = restoreStateFromHash;
-    console.log("App initialization completed. Bulletproof Firebase Sync Active (3s). Articles loaded:", allArticles.length);
+    console.log("App initialization completed. Zero-Delay Optimistic UI Active. Articles loaded:", allArticles.length);
 }
 
 // Ensure execution
