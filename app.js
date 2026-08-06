@@ -1989,6 +1989,9 @@ function initApp() {
         const searchBottom = searchSection.getBoundingClientRect().bottom;
         const titleRect = titleEl.getBoundingClientRect();
 
+        // Dynamically align top offset with bottom edge of sticky search section
+        titleEl.style.top = `${Math.round(searchBottom)}px`;
+
         if (titleRect.top <= searchBottom + 4) {
             titleEl.classList.add('is-stuck');
         } else {
