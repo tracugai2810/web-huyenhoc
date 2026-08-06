@@ -1,9 +1,12 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - PASSWORD 2810 AUTH & AUDIT TRAIL (V14)
+// KNOWLEDGE BASE LOGIC - CLOUD LOG SYNC & FIXED STICKY SEARCH (V17)
 // ==========================================================================
 
 function initApp() {
     console.log("Initializing Bách Khoa Huyền Học App...");
+
+    // Cloud REST Endpoint for System-Wide Activity Log Synchronization
+    const CLOUD_LOG_URL = 'https://huyenhoc-wiki-default-rtdb.asia-southeast1.firebasedatabase.app/logs.json';
 
     // Select DOM Elements
     const themeToggleBtn = document.getElementById('themeToggleBtn');
@@ -105,7 +108,7 @@ function initApp() {
     const mandatoryNickInput = document.getElementById('mandatoryNickInput');
     const mandatoryPassError = document.getElementById('mandatoryPassError');
 
-    // Activity Log & Bell Elements (Lịch sử thao tác trực tuyến - Không cho phép xóa)
+    // Activity Log & Bell Elements (Lịch sử thao tác đồng bộ toàn hệ thống)
     const activityBellBtn = document.getElementById('activityBellBtn');
     const activityBadgeCount = document.getElementById('activityBadgeCount');
     const activityLogModal = document.getElementById('activityLogModal');
@@ -114,8 +117,8 @@ function initApp() {
     const closeActivityLogModalBtn = document.getElementById('closeActivityLogModalBtn');
     const cancelActivityLogModalBtn = document.getElementById('cancelActivityLogModalBtn');
 
-    // Activity Log Storage & Helper Functions
-    function getActivityLogs() {
+    // Activity Log Storage & Cloud Synchronization Functions
+    function getLocalActivityLogs() {
         try {
             return JSON.parse(localStorage.getItem('APP_ACTIVITY_LOGS') || '[]');
         } catch (e) {
@@ -123,39 +126,77 @@ function initApp() {
         }
     }
 
+    async function syncLogsFromCloud() {
+        try {
+            if (typeof fetch === 'function') {
+                const res = await fetch(CLOUD_LOG_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        const cloudLogs = Object.values(data).sort((a, b) => new Date(b.time) - new Date(a.time));
+                        localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs.slice(0, 80)));
+                        updateActivityBadge();
+                        return cloudLogs;
+                    }
+                }
+            }
+        } catch (err) {
+            console.warn("Cloud log fetch failed, using local logs:", err);
+        }
+        return getLocalActivityLogs();
+    }
+
     function logActivity(actionText) {
-        let logs = getActivityLogs();
         const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        logs.unshift({
+        const logItem = {
             time: nowStr,
             user: currentUsername || 'DBC',
             action: actionText
-        });
+        };
+
+        let logs = getLocalActivityLogs();
+        logs.unshift(logItem);
         if (logs.length > 80) logs = logs.slice(0, 80);
+        
         try {
             localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(logs));
         } catch (e) {}
         updateActivityBadge();
+
+        // Asynchronously Push Log to Cloud API for System-Wide Synchronization
+        if (typeof fetch === 'function') {
+            fetch(CLOUD_LOG_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(logItem)
+            }).catch(err => console.warn("Cloud log push warning:", err));
+        }
     }
 
     function updateActivityBadge() {
-        const logs = getActivityLogs();
+        const logs = getLocalActivityLogs();
         if (activityBadgeCount) {
             activityBadgeCount.textContent = logs.length;
             activityBadgeCount.style.display = logs.length > 0 ? 'inline-block' : 'none';
         }
     }
 
-    function renderActivityLogs() {
+    async function renderActivityLogs() {
         if (!activityLogBody) return;
-        const logs = getActivityLogs();
+        activityLogBody.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: var(--text-muted);">
+                🔄 Đang đồng bộ nhật ký từ máy chủ...
+            </div>
+        `;
+
+        const logs = await syncLogsFromCloud();
         activityLogBody.innerHTML = '';
 
         if (logs.length === 0) {
             activityLogBody.innerHTML = `
                 <div class="empty-card" style="padding: 30px 10px; border: none; background: transparent;">
                     <div class="empty-icon">🔔</div>
-                    <p style="font-size: 13px; color: var(--text-muted);">Chưa có nhật ký thao tác nào.</p>
+                    <p style="font-size: 13px; color: var(--text-muted);">Chưa có nhật ký thao tác nào trên hệ thống.</p>
                 </div>
             `;
             return;
@@ -916,7 +957,7 @@ function initApp() {
                             
                             <div class="msg-form-actions-row" style="margin-top:8px;">
                                 <div class="file-upload-btn-wrapper">
-                                    <label for="editMsgImgInput_${idx}" class="btn btn-outline-sm">📷 Đính kèm ảnh</label>
+                                    <label for="editMsgImgInput_${idx}" class="btn btn-outline-sm"><span>📷</span><span class="btn-text"> Đính kèm ảnh</span></label>
                                     <input type="file" id="editMsgImgInput_${idx}" accept="image/*" style="display: none;">
                                 </div>
                                 <div class="msg-inline-actions">
@@ -1531,6 +1572,9 @@ function initApp() {
     if (!restoreStateFromHash()) {
         renderArticleList();
     }
+
+    // Initial background log sync from cloud
+    syncLogsFromCloud();
 
     window.onhashchange = restoreStateFromHash;
     console.log("App initialization completed. Articles loaded:", allArticles.length);

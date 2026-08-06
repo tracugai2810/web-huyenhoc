@@ -69,7 +69,7 @@
 
             <div class="sidebar-footer">
                 <!-- Nút Chuông Thông Báo Lịch Sử Thao Tác (Góc dưới bên trái trên nickname) -->
-                <button id="activityBellBtn" class="activity-bell-btn" title="Xem Lịch Sử Thao Tác">
+                <button id="activityBellBtn" class="activity-bell-btn" title="Xem Lịch Sử Thao Tác Toàn Hệ Thống">
                     <div class="bell-btn-left">
                         <span class="bell-icon">🔔</span>
                         <span class="bell-text">Lịch Sử Thao Tác</span>
@@ -317,20 +317,20 @@
                 <span class="confirm-icon">🔐</span>
                 <h3>Xác Thực Lần Đầu Truy Cập</h3>
             </div>
-            <form id="mandatoryNickForm" class="modal-body confirm-body" style="gap: 14px;">
+            <form id="mandatoryNickForm" class="modal-body confirm-body" style="gap: 14px;" autocomplete="off">
                 <p style="font-size: 14px; color: var(--text-primary); line-height: 1.5;">Vui lòng nhập <b>Mật khẩu bảo vệ</b> và <b>Nickname tác giả</b> để đăng nhập hệ thống thư viện:</p>
                 
                 <div class="form-field">
                     <label for="mandatoryPassInput">🔑 Mật Khẩu Truy Cập:</label>
-                    <input type="password" id="mandatoryPassInput" placeholder="Nhập mật khẩu (Vd: 2810)..." required style="width:100%; padding:12px 14px; border:1px solid var(--primary); border-radius:var(--radius-md); font-size:15px; background:var(--bg-card); color:var(--text-primary);">
+                    <input type="password" id="mandatoryPassInput" placeholder="Nhập mật khẩu truy cập..." required autocomplete="new-password" spellcheck="false" style="width:100%; padding:12px 14px; border:1px solid var(--primary); border-radius:var(--radius-md); font-size:15px; background:var(--bg-card); color:var(--text-primary);">
                 </div>
 
                 <div class="form-field">
                     <label for="mandatoryNickInput">👤 Nickname Tác Giả:</label>
-                    <input type="text" id="mandatoryNickInput" placeholder="Nhập Nickname (Vd: DBC, Minh An)..." required style="width:100%; padding:12px 14px; border:1px solid var(--primary); border-radius:var(--radius-md); font-size:15px; background:var(--bg-card); color:var(--text-primary);">
+                    <input type="text" id="mandatoryNickInput" placeholder="Nhập Nickname (Vd: DBC, Minh An)..." required autocomplete="off" spellcheck="false" style="width:100%; padding:12px 14px; border:1px solid var(--primary); border-radius:var(--radius-md); font-size:15px; background:var(--bg-card); color:var(--text-primary);">
                 </div>
 
-                <div id="mandatoryPassError" style="display: none; color: #EF4444; font-size: 13px; font-weight: 600;">⚠️ Mật khẩu không chính xác! Vui lòng nhập lại.</div>
+                <div id="mandatoryPassError" style="display: none; color: #EF4444; font-size: 13px; font-weight: 600;">⚠️ Mật khẩu không chính xác! Vui lòng thử lại.</div>
 
                 <div class="modal-footer confirm-footer" style="padding-right:0; padding-bottom:0; margin-top:6px;">
                     <button type="submit" class="btn btn-primary" style="width:100%; min-height:44px; font-size:15px;">🚀 Đăng Nhập Hệ Thống</button>
@@ -339,12 +339,12 @@
         </div>
     </div>
 
-    <!-- Modal 6: Activity History Log Modal -->
+    <!-- Modal 6: Activity History Log Modal (Lịch Sử Thao Tác Trực Tuyến Đồng Bộ Toàn Hệ Thống) -->
     <div class="modal" id="activityLogModal">
         <div class="modal-backdrop" id="activityLogBackdrop"></div>
         <div class="modal-card modal-sm">
             <div class="modal-header">
-                <h3>🔔 Lịch Sử Thao Tác Trực Tuyến</h3>
+                <h3>🔔 Lịch Sử Thao Tác Toàn Hệ Thống</h3>
                 <button class="icon-btn" id="closeActivityLogModalBtn">&times;</button>
             </div>
             <div class="modal-body" id="activityLogBody" style="max-height: 380px; overflow-y: auto; padding: 14px;">
