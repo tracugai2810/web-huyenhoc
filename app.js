@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE LOGIC - REAL-TIME CLOUD ACTIVITY LOG SYNC ENGINE (V18)
+// KNOWLEDGE BASE LOGIC - SMART ACCENT & WORD BOUNDARY SEARCH ENGINE (V19)
 // ==========================================================================
 
 function initApp() {
@@ -495,7 +495,38 @@ function initApp() {
     let searchQuery = '';
     let currentArticleId = null;
 
-    // Vietnamese Diacritics & Hyphen Normalizer
+    // Smart Vietnamese Diacritics & Word Boundary Helper Functions
+    function hasDiacritics(str) {
+        return /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(str);
+    }
+
+    function escapeRegExp(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function buildSearchRegex(query) {
+        const q = query.trim();
+        const isAccented = hasDiacritics(q);
+        const escaped = escapeRegExp(q);
+        const vnCharPattern = 'a-zA-Z0-9àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ';
+        
+        if (isAccented) {
+            // Strict exact accent & word boundary match
+            return {
+                isNormalized: false,
+                regex: new RegExp(`(?:^|[^${vnCharPattern}])(${escaped})(?:$|[^${vnCharPattern}])`, 'gi')
+            };
+        } else {
+            // Accent-insensitive word boundary match
+            const normQ = normalizeSearchText(q);
+            const normEscaped = escapeRegExp(normQ);
+            return {
+                isNormalized: true,
+                regex: new RegExp(`(?:^|[^${vnCharPattern}])(${normEscaped})(?:$|[^${vnCharPattern}])`, 'gi')
+            };
+        }
+    }
+
     function normalizeSearchText(str) {
         if (!str) return '';
         return str.toLowerCase()
@@ -507,20 +538,37 @@ function initApp() {
                   .trim();
     }
 
-    // Extract ALL matching message snippets with message index
+    // Extract ONLY matching message snippets with exact word/accent boundaries
     function getAllMatchedSnippets(articleContent, rawQuery, maxSnippets = 4) {
-        if (!articleContent || !rawQuery) return [];
+        if (!articleContent || !rawQuery || !rawQuery.trim()) return [];
 
         const msgs = parseMessagesFromContent(articleContent);
-        const normQuery = normalizeSearchText(rawQuery);
+        const matcher = buildSearchRegex(rawQuery);
         let snippets = [];
 
         msgs.forEach((m, msgIdx) => {
-            const normBody = normalizeSearchText(m.bodyText);
-            if (normBody.includes(normQuery)) {
-                const matchIdx = normBody.indexOf(normQuery);
+            let isMatch = false;
+            if (matcher.isNormalized) {
+                const normBody = normalizeSearchText(m.bodyText);
+                matcher.regex.lastIndex = 0;
+                isMatch = matcher.regex.test(normBody);
+            } else {
+                matcher.regex.lastIndex = 0;
+                isMatch = matcher.regex.test(m.bodyText);
+            }
+
+            if (isMatch) {
+                let matchIdx = -1;
+                if (matcher.isNormalized) {
+                    const normBody = normalizeSearchText(m.bodyText);
+                    matchIdx = normBody.indexOf(normalizeSearchText(rawQuery));
+                } else {
+                    matchIdx = m.bodyText.toLowerCase().indexOf(rawQuery.toLowerCase());
+                }
+                if (matchIdx < 0) matchIdx = 0;
+
                 const start = Math.max(0, matchIdx - 35);
-                const end = Math.min(m.bodyText.length, matchIdx + normQuery.length + 65);
+                const end = Math.min(m.bodyText.length, matchIdx + rawQuery.length + 65);
 
                 let snipText = m.bodyText.substring(start, end).replace(/\n+/g, ' ').trim();
                 if (start > 0) snipText = '... ' + snipText;
@@ -669,25 +717,57 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List
+    // Render Article Grid List with Prioritized Exact Search Matching
     function renderArticleList() {
         if (!articleGrid) return;
         
         let filtered = allArticles;
         const trimmedQuery = searchQuery.trim();
-        const normQuery = normalizeSearchText(trimmedQuery);
 
-        if (normQuery !== '') {
+        if (trimmedQuery !== '') {
             document.body.classList.add('is-searching');
             if (categoryActionsGroup) categoryActionsGroup.style.display = 'none';
             if (headerRightActions) headerRightActions.style.display = 'none';
 
-            filtered = filtered.filter(a => {
-                const normTitle = normalizeSearchText(a.title);
-                const normCat = normalizeSearchText(a.category);
-                const normContent = normalizeSearchText(a.content);
-                return normTitle.includes(normQuery) || normCat.includes(normQuery) || normContent.includes(normQuery);
+            const matcher = buildSearchRegex(trimmedQuery);
+            let matchedList = [];
+
+            filtered.forEach(a => {
+                let titleMatch = false;
+                if (matcher.isNormalized) {
+                    matcher.regex.lastIndex = 0;
+                    titleMatch = matcher.regex.test(normalizeSearchText(a.title));
+                } else {
+                    matcher.regex.lastIndex = 0;
+                    titleMatch = matcher.regex.test(a.title);
+                }
+
+                const matchedSnippets = getAllMatchedSnippets(a.content, trimmedQuery, 4);
+
+                if (titleMatch || matchedSnippets.length > 0) {
+                    matchedList.push({
+                        article: a,
+                        titleMatch: titleMatch,
+                        snippets: matchedSnippets,
+                        snippetCount: matchedSnippets.length
+                    });
+                }
             });
+
+            // Priority Sorting Logic:
+            // Rank 1: Title matches first
+            // Rank 2: Higher snippet counts
+            matchedList.sort((a, b) => {
+                if (a.titleMatch && !b.titleMatch) return -1;
+                if (!a.titleMatch && b.titleMatch) return 1;
+                return b.snippetCount - a.snippetCount;
+            });
+
+            filtered = matchedList.map(item => ({
+                ...item.article,
+                matchedSnippets: item.snippets
+            }));
+
         } else {
             document.body.classList.remove('is-searching');
             if (headerRightActions) headerRightActions.style.display = 'flex';
@@ -700,8 +780,8 @@ function initApp() {
         }
 
         if (currentCategoryTitle) {
-            if (normQuery) {
-                currentCategoryTitle.textContent = `Kết quả tìm kiếm: "${trimmedQuery}"`;
+            if (trimmedQuery) {
+                currentCategoryTitle.textContent = `Kết quả tìm kiếm chính xác: "${trimmedQuery}"`;
             } else {
                 currentCategoryTitle.textContent = activeCategory === 'ALL' ? 'Tất Cả Chủ Đề' : `Chuyên mục: ${activeCategory}`;
             }
@@ -717,8 +797,8 @@ function initApp() {
                 noResults.style.display = 'block';
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
-                    <h3>Không tìm thấy nội dung phù hợp</h3>
-                    <p>Hãy thử tìm với từ khóa khác (không phân biệt dấu tiếng Việt) hoặc bấm nút <b>"➕ Tạo chủ đề"</b>.</p>
+                    <h3>Không tìm thấy chủ đề nào chứa đúng từ khóa "${escapeHtml(trimmedQuery)}"</h3>
+                    <p>Hệ thống chỉ hiển thị kết quả khớp <b>chính xác đúng từ và đúng dấu</b>. Hãy thử tìm với từ khóa khác hoặc bấm nút <b>"➕ Tạo chủ đề"</b>.</p>
                 `;
             }
             return;
@@ -744,7 +824,7 @@ function initApp() {
             `;
 
             if (trimmedQuery) {
-                const matchedSnippets = getAllMatchedSnippets(art.content, trimmedQuery, 4);
+                const matchedSnippets = art.matchedSnippets || getAllMatchedSnippets(art.content, trimmedQuery, 4);
                 if (matchedSnippets.length > 0) {
                     const snippetsListDiv = document.createElement('div');
                     snippetsListDiv.className = 'card-matched-snippets';
@@ -781,15 +861,13 @@ function initApp() {
         });
     }
 
+    // Highlight Exact Search Terms
     function highlightText(text, query) {
         if (!query || !query.trim()) return text;
         const q = query.trim();
-        const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
+        const escaped = escapeRegExp(q);
+        const regex = new RegExp(`(${escaped})`, 'gi');
         return text.replace(regex, '<mark class="search-hl">$1</mark>');
-    }
-
-    function escapeRegExp(string) {
-        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     // Parse Markdown Content into Individual Messages
@@ -917,16 +995,22 @@ function initApp() {
             return;
         }
 
-        const normSearchQuery = normalizeSearchText(activeSearchQuery);
-
         parsedMsgs.forEach((msg, idx) => {
             const msgDiv = document.createElement('div');
             msgDiv.className = 'msg-block';
             msgDiv.setAttribute('data-msg-idx', idx);
 
-            if (normSearchQuery) {
-                const normBody = normalizeSearchText(msg.bodyText);
-                if (normBody.includes(normSearchQuery)) {
+            if (activeSearchQuery && activeSearchQuery.trim()) {
+                const matcher = buildSearchRegex(activeSearchQuery);
+                let isMatch = false;
+                if (matcher.isNormalized) {
+                    matcher.regex.lastIndex = 0;
+                    isMatch = matcher.regex.test(normalizeSearchText(msg.bodyText));
+                } else {
+                    matcher.regex.lastIndex = 0;
+                    isMatch = matcher.regex.test(msg.bodyText);
+                }
+                if (isMatch) {
                     msgDiv.classList.add('pulse-search-match');
                 }
             }
@@ -943,9 +1027,7 @@ function initApp() {
             }
 
             if (activeSearchQuery && activeSearchQuery.trim()) {
-                const q = activeSearchQuery.trim();
-                const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
-                renderedBody = renderedBody.replace(regex, '<mark class="search-hl active-search-match">$1</mark>');
+                renderedBody = highlightText(renderedBody, activeSearchQuery);
             }
 
             msgDiv.innerHTML = `
