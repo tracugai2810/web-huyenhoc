@@ -1,5 +1,5 @@
 // ==========================================================================
-// KNOWLEDGE BASE APPLICATION LOGIC - UNIVERSAL SEARCH & MODERN CONFIRMS (V3)
+// KNOWLEDGE BASE APPLICATION LOGIC - DUPLICATE CHECK & MATCH SNIPPETS (V4)
 // ==========================================================================
 
 function initApp() {
@@ -91,7 +91,7 @@ function initApp() {
     const saveTopicModalSubmitBtn = document.getElementById('saveTopicModalSubmitBtn');
     const editTopicId = document.getElementById('editTopicId');
 
-    // Custom Modern Confirm Modal Elements (Screenshot 2 fix)
+    // Custom Modern Confirm & Alert Modal Elements
     const customConfirmModal = document.getElementById('customConfirmModal');
     const customConfirmBackdrop = document.getElementById('customConfirmBackdrop');
     const confirmModalTitle = document.getElementById('confirmModalTitle');
@@ -107,7 +107,20 @@ function initApp() {
         }
         if (confirmModalTitle) confirmModalTitle.textContent = title || "Xác nhận";
         if (confirmModalMessage) confirmModalMessage.textContent = message;
+        if (confirmModalCancelBtn) confirmModalCancelBtn.style.display = 'inline-flex';
         onConfirmCallback = callback;
+        customConfirmModal.classList.add('active');
+    }
+
+    function showCustomAlert(title, message) {
+        if (!customConfirmModal) {
+            alert(message);
+            return;
+        }
+        if (confirmModalTitle) confirmModalTitle.textContent = title || "Thông báo";
+        if (confirmModalMessage) confirmModalMessage.textContent = message;
+        if (confirmModalCancelBtn) confirmModalCancelBtn.style.display = 'none';
+        onConfirmCallback = null;
         customConfirmModal.classList.add('active');
     }
 
@@ -230,16 +243,38 @@ function initApp() {
     let currentArticleId = null;
     let readerFontSize = 16;
 
-    // Vietnamese Diacritics & Hyphen Normalizer (Screenshot 4 Search Optimization)
+    // Vietnamese Diacritics & Hyphen Normalizer
     function normalizeSearchText(str) {
         if (!str) return '';
         return str.toLowerCase()
                   .normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, '') // remove tone accents
+                  .replace(/[\u0300-\u036f]/g, '')
                   .replace(/đ/g, 'd')
-                  .replace(/[-_]/g, ' ') // convert hyphens to spaces (#phá-quân -> phá quân)
+                  .replace(/[-_]/g, ' ')
                   .replace(/\s+/g, ' ')
                   .trim();
+    }
+
+    // Extract a 120-char snippet around match location (Screenshot 2 feature!)
+    function getMatchedSnippet(content, rawQuery) {
+        if (!content || !rawQuery) return content ? content.substring(0, 150) : "";
+        
+        const normContent = normalizeSearchText(content);
+        const normQuery = normalizeSearchText(rawQuery);
+        
+        const matchIdx = normContent.indexOf(normQuery);
+        if (matchIdx < 0) {
+            return content.substring(0, 150);
+        }
+
+        const start = Math.max(0, matchIdx - 40);
+        const end = Math.min(content.length, matchIdx + normQuery.length + 80);
+        
+        let snippet = content.substring(start, end).replace(/\n+/g, ' ').trim();
+        if (start > 0) snippet = '... ' + snippet;
+        if (end < content.length) snippet = snippet + ' ...';
+        
+        return snippet;
     }
 
     // Render Navigation Sidebar
@@ -306,13 +341,11 @@ function initApp() {
         };
     }
 
-    // Render Article Grid List with Universal Smart Global Search
+    // Render Article Grid List with DYNAMIC MATCHED SNIPPET
     function renderArticleList() {
         if (!articleGrid) return;
         
         let filtered = allArticles;
-
-        // If user typed search query, ALWAYS SEARCH GLOBALLY across entire site (Screenshot 3 & 4 requirement!)
         const trimmedQuery = searchQuery.trim();
         const normQuery = normalizeSearchText(trimmedQuery);
 
@@ -352,7 +385,7 @@ function initApp() {
                 noResults.innerHTML = `
                     <div class="empty-icon">🔍</div>
                     <h3>Không tìm thấy nội dung phù hợp</h3>
-                    <p>Hãy thử tìm lại với từ khóa khác hoặc tạo chủ đề mới.</p>
+                    <p>Hãy thử tìm với từ khóa khác (không phân biệt dấu tiếng Việt) hoặc bấm nút <b>"➕ Thêm Chủ Đề Mới"</b>.</p>
                 `;
             }
             return;
@@ -364,7 +397,8 @@ function initApp() {
             card.className = 'article-card';
             
             let displayTitle = escapeHtml(art.title || 'Chủ đề');
-            let displaySnippet = escapeHtml(art.preview || "Nội dung bài viết...");
+            let rawSnippet = trimmedQuery ? getMatchedSnippet(art.content, trimmedQuery) : (art.preview || "Nội dung bài viết...");
+            let displaySnippet = escapeHtml(rawSnippet);
 
             if (trimmedQuery) {
                 displayTitle = highlightText(displayTitle, trimmedQuery);
@@ -375,13 +409,12 @@ function initApp() {
                 <div class="card-tags">
                     <span class="tag-cat">${escapeHtml(art.category)}</span>
                     ${art.isThread ? '<span class="tag-thread">Thread</span>' : ''}
-                    <span class="tag-msg">💬 ${art.msgCount || 1} luận giải</span>
+                    <span class="tag-msg">💬 ${art.msgCount || 0} luận giải</span>
                 </div>
                 <h3 class="card-heading">${displayTitle}</h3>
                 <p class="card-snippet">${displaySnippet}</p>
             `;
 
-            // Clicking card opens reader view AND auto-scrolls to target search match!
             card.onclick = () => openReaderView(art.id, searchQuery);
             articleGrid.appendChild(card);
         });
@@ -405,7 +438,7 @@ function initApp() {
         return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
-    // Parse Markdown Content into Individual Messages
+    // Parse Markdown Content into Individual Messages (Returns [] if 0 messages - Screenshot 1 Fix!)
     function parseMessagesFromContent(rawMarkdown) {
         if (!rawMarkdown) return [];
 
@@ -422,20 +455,9 @@ function initApp() {
             });
         }
 
+        // Return empty list if no messages exist yet!
         if (matches.length === 0) {
-            // Strip header line if present
-            let bodyOnly = rawMarkdown;
-            if (bodyOnly.startsWith('# ')) {
-                const firstBreak = bodyOnly.indexOf('\n\n');
-                if (firstBreak >= 0) bodyOnly = bodyOnly.substring(firstBreak + 2);
-            }
-
-            return [{
-                id: 0,
-                author: currentUsername,
-                timestamp: new Date().toISOString().slice(0, 19).replace('T', ' '),
-                bodyText: bodyOnly.trim()
-            }];
+            return [];
         }
 
         let messagesList = [];
@@ -470,7 +492,7 @@ function initApp() {
         return { text, images };
     }
 
-    // Reader View & Interactive Message Rendering with AUTO-SCROLL TO SEARCH MATCH (Screenshot 4 & 5 fix)
+    // Reader View & Interactive Message Rendering (Renders Empty Card State if 0 messages - Screenshot 1 Fix!)
     function openReaderView(id, activeSearchQuery = '') {
         const article = allArticles.find(a => a.id === id);
         if (!article) return;
@@ -494,7 +516,6 @@ function initApp() {
         if (listView) listView.classList.remove('active');
         if (readerView) readerView.classList.add('active');
 
-        // Scroll to search match or top
         if (activeSearchQuery && activeSearchQuery.trim()) {
             setTimeout(() => {
                 const firstMatch = readerContent.querySelector('.active-search-match') || readerContent.querySelector('.pulse-search-match');
@@ -516,6 +537,18 @@ function initApp() {
         if (!readerContent) return;
         readerContent.innerHTML = '';
 
+        // Screenshot 1 Fix: Render Empty State if 0 messages!
+        if (parsedMsgs.length === 0) {
+            readerContent.innerHTML = `
+                <div class="empty-card" style="padding: 40px 20px; border: none; background: transparent;">
+                    <div class="empty-icon">📝</div>
+                    <h3>Chủ đề chưa có luận giải nào</h3>
+                    <p>Hãy gõ nội dung ở khung bên dưới để đăng đoạn luận giải đầu tiên cho chủ đề <b>"${escapeHtml(article.title)}"</b>!</p>
+                </div>
+            `;
+            return;
+        }
+
         const normSearchQuery = normalizeSearchText(activeSearchQuery);
 
         parsedMsgs.forEach((msg, idx) => {
@@ -523,11 +556,9 @@ function initApp() {
             msgDiv.className = 'msg-block';
             msgDiv.setAttribute('data-msg-idx', idx);
 
-            let isMessageMatchingSearch = false;
             if (normSearchQuery) {
                 const normBody = normalizeSearchText(msg.bodyText);
                 if (normBody.includes(normSearchQuery)) {
-                    isMessageMatchingSearch = true;
                     msgDiv.classList.add('pulse-search-match');
                 }
             }
@@ -543,7 +574,6 @@ function initApp() {
                 renderedBody = escapeHtml(msg.bodyText).replace(/\n/g, '<br>');
             }
 
-            // Highlight search matches in HTML
             if (activeSearchQuery && activeSearchQuery.trim()) {
                 const q = activeSearchQuery.trim();
                 const regex = new RegExp(`(${escapeRegExp(q)})`, 'gi');
@@ -681,7 +711,7 @@ function initApp() {
                 };
             }
 
-            // Delete single message with MODERN CONFIRM MODAL (Screenshot 2 fix)
+            // Delete single message with MODERN CONFIRM MODAL
             const deleteBtn = msgDiv.querySelector('.delete-msg-btn');
             if (deleteBtn) {
                 deleteBtn.onclick = () => {
@@ -710,7 +740,7 @@ function initApp() {
 
         article.content = newContent;
         article.msgCount = messagesList.length;
-        article.preview = messagesList.length > 0 ? messagesList[0].bodyText.substring(0, 150) : "";
+        article.preview = messagesList.length > 0 ? messagesList[0].bodyText.substring(0, 150) : "Chủ đề mới tạo...";
 
         let custIndex = customArticles.findIndex(a => a.id === article.id);
         if (custIndex >= 0) {
@@ -818,7 +848,7 @@ function initApp() {
             const text = inlineMsgTextarea ? inlineMsgTextarea.value.trim() : "";
 
             if (!text && pendingBase64Images.length === 0) {
-                alert("Vui lòng nhập nội dung luận giải hoặc đính kèm ảnh!");
+                showCustomAlert("Chưa nhập nội dung", "Vui lòng nhập nội dung luận giải hoặc đính kèm ảnh!");
                 return;
             }
 
@@ -855,7 +885,7 @@ function initApp() {
         };
     }
 
-    // Category Modal
+    // Category Modal with Strict DUPLICATE CHECKING
     if (addCategoryBtnSidebar) {
         addCategoryBtnSidebar.onclick = () => {
             if (categoryModal) categoryModal.classList.add('active');
@@ -872,18 +902,27 @@ function initApp() {
             const newCat = newCategoryTitleInput ? newCategoryTitleInput.value.trim() : "";
             if (!newCat) return;
 
-            if (!categories.includes(newCat)) {
-                defaultCategories.push(newCat);
-                refreshCategories();
-                renderNavigation();
+            const normNewCat = normalizeSearchText(newCat);
+            const existingCat = categories.find(c => normalizeSearchText(c) === normNewCat);
+
+            if (existingCat) {
+                showCustomAlert("Chuyên mục đã tồn tại", `Chuyên mục "${existingCat}" đã có trong danh sách! Đã chuyển sang chuyên mục này.`);
+                selectCategory(existingCat);
+                categoryModal.classList.remove('active');
+                if (newCategoryTitleInput) newCategoryTitleInput.value = "";
+                return;
             }
+
+            defaultCategories.push(newCat);
+            refreshCategories();
+            renderNavigation();
             selectCategory(newCat);
             if (newCategoryTitleInput) newCategoryTitleInput.value = "";
             categoryModal.classList.remove('active');
         };
     }
 
-    // Topic Modal
+    // Topic Modal with Strict DUPLICATE CHECKING
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         
@@ -935,7 +974,18 @@ function initApp() {
             const title = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
 
             if (!cat || !title) {
-                alert("Vui lòng nhập Tên Chủ Đề / Kênh!");
+                showCustomAlert("Thiếu thông tin", "Vui lòng nhập Tên Chủ Đề / Kênh!");
+                return;
+            }
+
+            const normTitle = normalizeSearchText(title);
+            let existingArticle = allArticles.find(a => a.category === cat && normalizeSearchText(a.title) === normTitle);
+
+            // Duplicate Topic Check when creating new!
+            if (!id && existingArticle) {
+                showCustomAlert("Chủ đề đã tồn tại", `Chủ đề "${existingArticle.title}" đã có sẵn trong chuyên mục "${cat}". Đã mở chủ đề này cho bạn!`);
+                topicModal.classList.remove('active');
+                openReaderView(existingArticle.id);
                 return;
             }
 
@@ -964,26 +1014,21 @@ function initApp() {
                     targetId = id;
                 }
             } else {
-                let existingArticle = allArticles.find(a => a.category === cat && a.title === title);
-                if (existingArticle) {
-                    targetId = existingArticle.id;
-                } else {
-                    const newId = `custom_${Date.now()}`;
-                    const formattedContent = `# ${cat} / #${title}\n\n`;
+                const newId = `custom_${Date.now()}`;
+                const formattedContent = `# ${cat} / #${title}\n\n`;
 
-                    const newArt = {
-                        id: newId,
-                        category: cat,
-                        channel: title,
-                        title: title,
-                        isThread: false,
-                        msgCount: 0,
-                        preview: "Bấm để thêm nội dung luận giải...",
-                        content: formattedContent
-                    };
-                    customArticles.push(newArt);
-                    targetId = newId;
-                }
+                const newArt = {
+                    id: newId,
+                    category: cat,
+                    channel: title,
+                    title: title,
+                    isThread: false,
+                    msgCount: 0,
+                    preview: "Chủ đề mới tạo...",
+                    content: formattedContent
+                };
+                customArticles.push(newArt);
+                targetId = newId;
             }
 
             try {
@@ -1001,7 +1046,7 @@ function initApp() {
         };
     }
 
-    // Delete Topic with Modern Confirm Modal (Screenshot 2 fix)
+    // Delete Topic with Modern Confirm Modal
     if (deleteArticleBtn) {
         deleteArticleBtn.onclick = () => {
             if (!currentArticleId) return;
@@ -1083,7 +1128,7 @@ function initApp() {
         if (searchInput) searchInput.focus();
     };
 
-    // Universal Global Search Input Logic (Screenshot 3 & 4 requirement!)
+    // Universal Global Search Input Logic
     if (searchInput) {
         searchInput.oninput = (e) => {
             searchQuery = e.target.value;
