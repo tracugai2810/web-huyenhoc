@@ -754,6 +754,27 @@ function initApp() {
     let searchQuery = '';
     let currentArticleId = null;
 
+    // Clean topic title helper (removes raw exported '#' prefixes or leading digits like '1#')
+    function cleanTopicTitle(title) {
+        if (!title) return '';
+        let cleaned = title.replace(/^[\d#\s]+/, '').replace(/^#+/, '').trim();
+        return cleaned || title.trim();
+    }
+
+    function updateArticleContentHeader(oldContent, newCategory, newTitle) {
+        const cleanT = cleanTopicTitle(newTitle);
+        const newHeader = `# ${newCategory} / #${cleanT}`;
+        if (!oldContent) return newHeader + '\n\n';
+        
+        const lines = oldContent.split('\n');
+        if (lines.length > 0 && lines[0].startsWith('#')) {
+            lines[0] = newHeader;
+            return lines.join('\n');
+        } else {
+            return newHeader + '\n\n' + oldContent;
+        }
+    }
+
     // Smart Vietnamese Diacritics & Word Boundary Helper Functions
     function hasDiacritics(str) {
         return /[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]/i.test(str);
@@ -1108,7 +1129,7 @@ function initApp() {
             const card = document.createElement('div');
             card.className = 'article-card';
             
-            let displayTitle = escapeHtml(art.title || 'Chủ đề');
+            let displayTitle = escapeHtml(cleanTopicTitle(art.title) || 'Chủ đề');
             if (trimmedQuery) {
                 displayTitle = highlightText(displayTitle, trimmedQuery);
             }
@@ -1238,7 +1259,7 @@ function initApp() {
 
         currentArticleId = id;
         if (readerCategory) readerCategory.textContent = article.category;
-        if (readerTitle) readerTitle.textContent = article.title;
+        if (readerTitle) readerTitle.textContent = cleanTopicTitle(article.title);
         
         if (readerThreadBadge) {
             if (article.isThread) {
@@ -1492,7 +1513,8 @@ function initApp() {
     }
 
     function saveUpdatedMessagesToArticle(article, messagesList) {
-        const headerText = `# ${article.category} / #${article.title}`;
+        const cleanT = cleanTopicTitle(article.title);
+        const headerText = `# ${article.category} / #${cleanT}`;
         
         let newContent = headerText + '\n\n';
         messagesList.forEach(m => {
@@ -1722,7 +1744,7 @@ function initApp() {
                 topicCategorySelect.style.display = 'block';
                 topicCategorySelect.value = articleToEdit.category;
             }
-            if (newTopicTitleInput) newTopicTitleInput.value = articleToEdit.title;
+            if (newTopicTitleInput) newTopicTitleInput.value = cleanTopicTitle(articleToEdit.title);
         } else {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề Mới";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề";
@@ -1776,7 +1798,8 @@ function initApp() {
                 cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : (topicCategorySelect ? topicCategorySelect.value.trim() : categories[0]);
             }
             
-            const title = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
+            const rawTitle = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
+            const title = cleanTopicTitle(rawTitle);
 
             if (!cat || !title) {
                 showCustomAlert("Thiếu thông tin", "Vui lòng nhập Tên Chủ Đề / Kênh!");
@@ -1784,10 +1807,10 @@ function initApp() {
             }
 
             const normTitle = normalizeSearchText(title);
-            let existingArticle = allArticles.find(a => a.category === cat && normalizeSearchText(a.title) === normTitle);
+            let existingArticle = allArticles.find(a => a.category === cat && normalizeSearchText(cleanTopicTitle(a.title)) === normTitle);
 
             if (!id && existingArticle) {
-                showCustomAlert("Chủ đề đã tồn tại", `Chủ đề "${existingArticle.title}" đã có sẵn trong chuyên mục "${cat}". Đã mở chủ đề này cho bạn!`);
+                showCustomAlert("Chủ đề đã tồn tại", `Chủ đề "${cleanTopicTitle(existingArticle.title)}" đã có sẵn trong chuyên mục "${cat}". Đã mở chủ đề này cho bạn!`);
                 topicModal.classList.remove('active');
                 openReaderView(existingArticle.id);
                 return;
@@ -1799,13 +1822,18 @@ function initApp() {
                 let targetArt = allArticles.find(a => a.id === id);
 
                 if (targetArt) {
-                    const parsedMsgs = parseMessagesFromContent(targetArt.content);
+                    const updatedContent = updateArticleContentHeader(targetArt.content, cat, title);
+                    const parsedMsgs = parseMessagesFromContent(updatedContent);
+
                     const updatedArt = {
                         ...targetArt,
                         id: id,
                         category: cat,
                         title: title,
-                        channel: title
+                        channel: title,
+                        content: updatedContent,
+                        msgCount: parsedMsgs.length > 0 ? parsedMsgs.length : (targetArt.msgCount || 0),
+                        preview: parsedMsgs.length > 0 ? parsedMsgs[0].bodyText.substring(0, 150) : (targetArt.preview || "Chủ đề...")
                     };
 
                     const defIdx = defaultArticles.findIndex(a => a.id === id);
@@ -1820,10 +1848,10 @@ function initApp() {
                         customArticles.push(updatedArt);
                     }
 
-                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
+                    saveCustomArticlesToCloud(customArticles);
                     targetId = id;
                     logActivity(`Chỉnh sửa tên chủ đề thành "${title}"`);
-                    showToast(`Đã cập nhật chủ đề "${title}"`, 'success');
+                    showToast(`Đã cập nhật chủ đề thành "${title}"`, 'success');
                 }
             } else {
                 const newId = `custom_${Date.now()}`;
