@@ -1397,20 +1397,20 @@ mark.active-search-match {
    ========================================================================== */
 .toast-container {
     position: fixed;
-    bottom: 24px;
+    top: 76px;
     right: 24px;
-    z-index: 999999;
+    z-index: 9999999;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-width: 380px;
+    max-width: 420px;
     width: calc(100vw - 32px);
     pointer-events: none;
 }
 
 @media (max-width: 768px) {
     .toast-container {
-        bottom: 16px;
+        top: 68px;
         left: 50%;
         right: auto;
         transform: translateX(-50%);

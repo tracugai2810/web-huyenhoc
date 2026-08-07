@@ -1750,23 +1750,23 @@ function initApp() {
     // Streamlined Topic Modal
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
+        const categoryFormField = document.getElementById('topicCategoryFormField');
         
         if (articleToEdit) {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề (Kênh)";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Lưu Chỉnh Sửa";
             if (editTopicId) editTopicId.value = articleToEdit.id;
             
-            if (topicCategoryBadge) topicCategoryBadge.style.display = 'none';
-            if (topicCategorySelect) {
-                topicCategorySelect.style.display = 'block';
-                topicCategorySelect.value = articleToEdit.category;
-            }
+            // Hide category field when editing an existing topic (since it's already inside its category)
+            if (categoryFormField) categoryFormField.style.display = 'none';
             if (newTopicTitleInput) newTopicTitleInput.value = cleanTopicTitle(articleToEdit.title);
         } else {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề Mới";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề";
             if (editTopicId) editTopicId.value = "";
             
+            if (categoryFormField) categoryFormField.style.display = 'block';
+
             let targetCat = categories[0] || "";
             if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
                 targetCat = activeCategory;
