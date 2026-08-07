@@ -1397,24 +1397,25 @@ mark.active-search-match {
    ========================================================================== */
 .toast-container {
     position: fixed;
-    top: 76px;
-    right: 24px;
-    z-index: 9999999;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999999;
     display: flex;
     flex-direction: column;
+    align-items: center;
     gap: 10px;
-    max-width: 420px;
-    width: calc(100vw - 32px);
+    max-width: 90vw;
+    width: auto;
     pointer-events: none;
 }
 
 @media (max-width: 768px) {
     .toast-container {
-        top: 68px;
+        top: 16px;
         left: 50%;
-        right: auto;
         transform: translateX(-50%);
-        width: calc(100vw - 24px);
+        max-width: 92vw;
     }
 }
 
@@ -1422,38 +1423,43 @@ mark.active-search-match {
     pointer-events: auto;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--bg-card);
-    color: var(--text-primary);
-    border: 1px solid var(--border);
-    border-left: 4px solid var(--primary);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
-    font-size: 14px;
-    font-weight: 500;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #10B981;
+    color: #FFFFFF;
+    border-radius: 50px;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(16, 185, 129, 0.45);
+    font-size: 15px;
+    font-weight: 700;
     line-height: 1.4;
     position: relative;
     overflow: hidden;
-    animation: toastSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    animation: toastPopDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    white-space: nowrap;
 }
 
 .toast-item.toast-success {
-    border-left-color: #10B981;
+    background: #10B981;
+    color: #FFFFFF;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(16, 185, 129, 0.45);
 }
 
 .toast-item.toast-danger {
-    border-left-color: #EF4444;
+    background: #EF4444;
+    color: #FFFFFF;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(239, 68, 68, 0.45);
 }
 
 .toast-item.toast-warning {
-    border-left-color: #F59E0B;
+    background: #F59E0B;
+    color: #FFFFFF;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(245, 158, 11, 0.45);
 }
 
 .toast-item.toast-info {
-    border-left-color: #3B82F6;
+    background: #3B82F6;
+    color: #FFFFFF;
+    box-shadow: 0 14px 35px rgba(0, 0, 0, 0.25), 0 4px 14px rgba(59, 130, 246, 0.45);
 }
 
 .toast-icon {
@@ -1466,24 +1472,23 @@ mark.active-search-match {
 
 .toast-message {
     flex: 1;
-    word-break: break-word;
 }
 
 .toast-close {
-    background: none;
+    background: rgba(255, 255, 255, 0.2);
     border: none;
-    color: var(--text-muted);
-    font-size: 18px;
+    color: #FFFFFF;
+    font-size: 16px;
     cursor: pointer;
-    padding: 2px 4px;
+    padding: 2px 6px;
     line-height: 1;
-    border-radius: 4px;
-    transition: color 0.2s, background-color 0.2s;
+    border-radius: 50%;
+    margin-left: 6px;
+    transition: background 0.2s;
 }
 
 .toast-close:hover {
-    color: var(--text-primary);
-    background-color: var(--bg-input);
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .toast-progress {
@@ -1492,24 +1497,18 @@ mark.active-search-match {
     left: 0;
     height: 3px;
     width: 100%;
-    background: var(--primary);
-    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.6);
     animation: toastProgress linear forwards;
 }
 
-.toast-success .toast-progress { background: #10B981; }
-.toast-danger .toast-progress { background: #EF4444; }
-.toast-warning .toast-progress { background: #F59E0B; }
-.toast-info .toast-progress { background: #3B82F6; }
-
 .toast-item.toast-hiding {
-    animation: toastSlideOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: toastPopOut 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-@keyframes toastSlideIn {
+@keyframes toastPopDown {
     from {
         opacity: 0;
-        transform: translateY(20px) scale(0.95);
+        transform: translateY(-30px) scale(0.9);
     }
     to {
         opacity: 1;
@@ -1517,14 +1516,14 @@ mark.active-search-match {
     }
 }
 
-@keyframes toastSlideOut {
+@keyframes toastPopOut {
     from {
         opacity: 1;
         transform: translateY(0) scale(1);
     }
     to {
         opacity: 0;
-        transform: translateY(12px) scale(0.95);
+        transform: translateY(-20px) scale(0.9);
     }
 }
 
