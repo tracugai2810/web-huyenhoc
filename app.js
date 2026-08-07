@@ -528,12 +528,18 @@ function initApp() {
     let customCategories = [];
     let deletedArticleIds = [];
     let deletedCategoryNames = [];
+    let overriddenArticles = {};
 
     // Load local storage initial fallback
     try { customArticles = JSON.parse(localStorage.getItem('CUSTOM_ARTICLES') || '[]'); } catch (e) {}
     try { customCategories = JSON.parse(localStorage.getItem('CUSTOM_CATEGORIES') || '[]'); } catch (e) {}
     try { deletedArticleIds = JSON.parse(localStorage.getItem('DELETED_ARTICLE_IDS') || '[]'); } catch (e) {}
     try { deletedCategoryNames = JSON.parse(localStorage.getItem('DELETED_CATEGORY_NAMES') || '[]'); } catch (e) {}
+    try { overriddenArticles = JSON.parse(localStorage.getItem('OVERRIDDEN_ARTICLES') || '{}'); } catch (e) {}
+
+    function saveOverriddenArticles() {
+        try { localStorage.setItem('OVERRIDDEN_ARTICLES', JSON.stringify(overriddenArticles)); } catch (e) {}
+    }
 
     // Unified Master Realtime Cloud Synchronization Function across All Devices!
     async function syncAllFromCloud() {
@@ -721,6 +727,14 @@ function initApp() {
                 articlesMap.set(art.id, art);
             }
         });
+
+        if (overriddenArticles && typeof overriddenArticles === 'object') {
+            Object.values(overriddenArticles).forEach(art => {
+                if (art && art.id && !deletedArticleIds.includes(art.id) && (!art.category || !deletedCategoryNames.includes(art.category))) {
+                    articlesMap.set(art.id, art);
+                }
+            });
+        }
 
         return Array.from(articlesMap.values());
     }
@@ -1536,6 +1550,9 @@ function initApp() {
         if (defIndex >= 0) {
             defaultArticles[defIndex] = article;
         }
+
+        overriddenArticles[article.id] = article;
+        saveOverriddenArticles();
         
         // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
         saveCustomArticlesToCloud(customArticles);
@@ -1793,9 +1810,16 @@ function initApp() {
             
             let cat = "";
             if (id) {
-                cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
+                let targetArt = allArticles.find(a => a.id === id);
+                if (topicCategorySelect && topicCategorySelect.value && topicCategorySelect.value.trim()) {
+                    cat = topicCategorySelect.value.trim();
+                } else if (targetArt && targetArt.category) {
+                    cat = targetArt.category;
+                } else {
+                    cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : categories[0];
+                }
             } else {
-                cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : (topicCategorySelect ? topicCategorySelect.value.trim() : categories[0]);
+                cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : (topicCategorySelect && topicCategorySelect.value ? topicCategorySelect.value.trim() : categories[0]);
             }
             
             const rawTitle = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
@@ -1847,6 +1871,9 @@ function initApp() {
                     } else {
                         customArticles.push(updatedArt);
                     }
+
+                    overriddenArticles[id] = updatedArt;
+                    saveOverriddenArticles();
 
                     saveCustomArticlesToCloud(customArticles);
                     targetId = id;
@@ -1903,6 +1930,11 @@ function initApp() {
                         deletedArticleIds.push(currentArticleId);
                     }
                     saveDeletedIdsToCloud(deletedArticleIds);
+
+                    if (overriddenArticles[currentArticleId]) {
+                        delete overriddenArticles[currentArticleId];
+                        saveOverriddenArticles();
+                    }
 
                     const custIdx = customArticles.findIndex(a => a.id === currentArticleId);
                     if (custIdx >= 0) {
