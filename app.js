@@ -1751,33 +1751,34 @@ function initApp() {
     function openTopicModal(articleToEdit = null) {
         renderNavigation();
         const categoryFormField = document.getElementById('topicCategoryFormField');
+        if (categoryFormField) categoryFormField.style.display = 'block';
         
         if (articleToEdit) {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "✏️ Chỉnh Sửa Chủ Đề (Kênh)";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Lưu Chỉnh Sửa";
             if (editTopicId) editTopicId.value = articleToEdit.id;
             
-            // Hide category field when editing an existing topic (since it's already inside its category)
-            if (categoryFormField) categoryFormField.style.display = 'none';
+            if (topicCategoryBadge) topicCategoryBadge.style.display = 'none';
+            if (topicCategorySelect) {
+                topicCategorySelect.style.display = 'block';
+                topicCategorySelect.value = articleToEdit.category;
+            }
             if (newTopicTitleInput) newTopicTitleInput.value = cleanTopicTitle(articleToEdit.title);
         } else {
             if (topicModalHeaderTitle) topicModalHeaderTitle.textContent = "➕ Thêm Chủ Đề Mới";
             if (saveTopicModalSubmitBtn) saveTopicModalSubmitBtn.textContent = "Tạo Chủ Đề";
             if (editTopicId) editTopicId.value = "";
             
-            if (categoryFormField) categoryFormField.style.display = 'block';
-
             let targetCat = categories[0] || "";
             if (activeCategory !== 'ALL' && categories.includes(activeCategory)) {
                 targetCat = activeCategory;
             }
 
             if (topicCategoryBadge && topicCategoryBadgeName) {
-                topicCategoryBadge.style.display = 'flex';
-                topicCategoryBadgeName.textContent = targetCat;
+                topicCategoryBadge.style.display = 'none';
             }
             if (topicCategorySelect) {
-                topicCategorySelect.style.display = 'none';
+                topicCategorySelect.style.display = 'block';
                 topicCategorySelect.value = targetCat;
             }
             if (newTopicTitleInput) newTopicTitleInput.value = "";
@@ -1808,18 +1809,10 @@ function initApp() {
             e.preventDefault();
             const id = editTopicId ? editTopicId.value : "";
             
-            let cat = "";
-            if (id) {
+            let cat = topicCategorySelect ? topicCategorySelect.value.trim() : "";
+            if (!cat && id) {
                 let targetArt = allArticles.find(a => a.id === id);
-                if (topicCategorySelect && topicCategorySelect.value && topicCategorySelect.value.trim()) {
-                    cat = topicCategorySelect.value.trim();
-                } else if (targetArt && targetArt.category) {
-                    cat = targetArt.category;
-                } else {
-                    cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : categories[0];
-                }
-            } else {
-                cat = (activeCategory !== 'ALL' && categories.includes(activeCategory)) ? activeCategory : (topicCategorySelect && topicCategorySelect.value ? topicCategorySelect.value.trim() : categories[0]);
+                if (targetArt && targetArt.category) cat = targetArt.category;
             }
             
             const rawTitle = newTopicTitleInput ? newTopicTitleInput.value.trim() : "";
