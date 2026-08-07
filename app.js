@@ -487,6 +487,7 @@ function initApp() {
     }
 
     function showListView() {
+        currentArticleId = null;
         if (readerView) readerView.classList.remove('active');
         if (listView) listView.classList.add('active');
         if (backToListBtnHeader) backToListBtnHeader.style.display = 'none';
@@ -561,10 +562,12 @@ function initApp() {
                 if (Array.isArray(delData)) cloudDel = delData;
                 else if (delData && typeof delData === 'object') cloudDel = Object.values(delData);
 
-                if (Array.isArray(cloudDel) && JSON.stringify(cloudDel) !== JSON.stringify(deletedArticleIds)) {
+                if (cloudDel.length > 0 && JSON.stringify(cloudDel) !== JSON.stringify(deletedArticleIds)) {
                     deletedArticleIds = cloudDel;
                     localStorage.setItem('DELETED_ARTICLE_IDS', JSON.stringify(deletedArticleIds));
                     hasChanged = true;
+                } else if ((delData === null || cloudDel.length === 0) && deletedArticleIds.length > 0) {
+                    saveDeletedIdsToCloud(deletedArticleIds);
                 }
             }
 
@@ -575,10 +578,12 @@ function initApp() {
                 if (Array.isArray(delCatData)) cloudDelCats = delCatData;
                 else if (delCatData && typeof delCatData === 'object') cloudDelCats = Object.values(delCatData);
 
-                if (Array.isArray(cloudDelCats) && JSON.stringify(cloudDelCats) !== JSON.stringify(deletedCategoryNames)) {
+                if (cloudDelCats.length > 0 && JSON.stringify(cloudDelCats) !== JSON.stringify(deletedCategoryNames)) {
                     deletedCategoryNames = cloudDelCats;
                     localStorage.setItem('DELETED_CATEGORY_NAMES', JSON.stringify(deletedCategoryNames));
                     hasChanged = true;
+                } else if ((delCatData === null || cloudDelCats.length === 0) && deletedCategoryNames.length > 0) {
+                    saveDeletedCategoryNamesToCloud(deletedCategoryNames);
                 }
             }
 
@@ -589,10 +594,12 @@ function initApp() {
                 if (Array.isArray(catData)) cloudCats = catData;
                 else if (catData && typeof catData === 'object') cloudCats = Object.values(catData);
 
-                if (Array.isArray(cloudCats) && JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
+                if (cloudCats.length > 0 && JSON.stringify(cloudCats) !== JSON.stringify(customCategories)) {
                     customCategories = cloudCats;
                     localStorage.setItem('CUSTOM_CATEGORIES', JSON.stringify(customCategories));
                     hasChanged = true;
+                } else if ((catData === null || cloudCats.length === 0) && customCategories.length > 0) {
+                    saveCategoriesToCloud(customCategories);
                 }
             }
 
@@ -603,10 +610,12 @@ function initApp() {
                 if (Array.isArray(artData)) cloudArts = artData;
                 else if (artData && typeof artData === 'object') cloudArts = Object.values(artData);
 
-                if (Array.isArray(cloudArts) && JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
+                if (cloudArts.length > 0 && JSON.stringify(cloudArts) !== JSON.stringify(customArticles)) {
                     customArticles = cloudArts;
                     localStorage.setItem('CUSTOM_ARTICLES', JSON.stringify(customArticles));
                     hasChanged = true;
+                } else if ((artData === null || cloudArts.length === 0) && customArticles.length > 0) {
+                    saveCustomArticlesToCloud(customArticles);
                 }
             }
 
@@ -620,9 +629,8 @@ function initApp() {
                     if (cloudLogs.length > 20) cloudLogs = cloudLogs.slice(0, 20);
                     localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify(cloudLogs));
                     updateActivityBadge();
-                } else if (logData === null || (cloudLogs && cloudLogs.length === 0)) {
-                    localStorage.setItem('APP_ACTIVITY_LOGS', JSON.stringify([]));
-                    updateActivityBadge();
+                } else if (logData === null && getLocalActivityLogs().length > 0) {
+                    logActivity("Đồng bộ nhật ký thao tác");
                 }
             }
 
@@ -918,27 +926,33 @@ function initApp() {
                 (newName) => {
                     if (!newName || newName === activeCategory) return;
                     const oldCat = activeCategory;
+                    const normNewName = normalizeSearchText(newName);
 
                     allArticles.forEach(art => {
-                        if (art.category === activeCategory) {
+                        if (art.category === oldCat) {
                             art.category = newName;
                             const parsedMsgs = parseMessagesFromContent(art.content);
-                            saveUpdatedMessagesToArticle(art, parsedMsgs);
+                            const headerText = `# ${art.category} / #${art.title}`;
+                            let newContent = headerText + '\n\n';
+                            parsedMsgs.forEach(m => {
+                                newContent += `### **${m.author}** (\`${m.timestamp}\`)\n${m.bodyText}\n\n`;
+                            });
+                            art.content = newContent;
+
+                            let custIndex = customArticles.findIndex(a => a.id === art.id);
+                            if (custIndex >= 0) customArticles[custIndex] = art;
+                            else customArticles.push(art);
+
+                            let defIndex = defaultArticles.findIndex(a => a.id === art.id);
+                            if (defIndex >= 0) defaultArticles[defIndex] = art;
                         }
                     });
 
-                    // Add oldCat to deletedCategoryNames so defaultCategories won't bring oldCat back on refresh
                     if (!deletedCategoryNames.includes(oldCat)) {
                         deletedCategoryNames.push(oldCat);
                     }
+                    deletedCategoryNames = deletedCategoryNames.filter(c => normalizeSearchText(c) !== normNewName);
                     saveDeletedCategoryNamesToCloud(deletedCategoryNames);
-
-                    // Remove newName from deletedCategoryNames if it was previously deleted
-                    const delIdx = deletedCategoryNames.indexOf(newName);
-                    if (delIdx >= 0) {
-                        deletedCategoryNames.splice(delIdx, 1);
-                        saveDeletedCategoryNamesToCloud(deletedCategoryNames);
-                    }
 
                     const idx = defaultCategories.indexOf(activeCategory);
                     if (idx >= 0) defaultCategories[idx] = newName;
@@ -947,7 +961,6 @@ function initApp() {
                     if (cIdx >= 0) customCategories[cIdx] = newName;
                     else if (!customCategories.includes(newName)) customCategories.push(newName);
 
-                    // OPTIMISTIC INSTANT UI UPDATES (0ms delay)
                     saveCategoriesToCloud(customCategories);
                     saveCustomArticlesToCloud(customArticles);
                     
@@ -1496,6 +1509,11 @@ function initApp() {
         } else {
             customArticles.push(article);
         }
+
+        let defIndex = defaultArticles.findIndex(a => a.id === article.id);
+        if (defIndex >= 0) {
+            defaultArticles[defIndex] = article;
+        }
         
         // INSTANT OPTIMISTIC UI RE-RENDER (0ms delay)
         saveCustomArticlesToCloud(customArticles);
@@ -1671,12 +1689,8 @@ function initApp() {
                 return;
             }
 
-            // Remove from deletedCategoryNames if it was previously deleted
-            const delIdx = deletedCategoryNames.indexOf(newCat);
-            if (delIdx >= 0) {
-                deletedCategoryNames.splice(delIdx, 1);
-                saveDeletedCategoryNamesToCloud(deletedCategoryNames);
-            }
+            deletedCategoryNames = deletedCategoryNames.filter(c => normalizeSearchText(c) !== normNewCat);
+            saveDeletedCategoryNamesToCloud(deletedCategoryNames);
 
             if (!customCategories.includes(newCat)) {
                 customCategories.push(newCat);
@@ -1782,7 +1796,6 @@ function initApp() {
             let targetId = null;
 
             if (id) {
-                let index = customArticles.findIndex(a => a.id === id);
                 let targetArt = allArticles.find(a => a.id === id);
 
                 if (targetArt) {
@@ -1794,13 +1807,20 @@ function initApp() {
                         title: title,
                         channel: title
                     };
-                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
 
-                    if (index >= 0) {
-                        customArticles[index] = updatedArt;
+                    const defIdx = defaultArticles.findIndex(a => a.id === id);
+                    if (defIdx >= 0) {
+                        defaultArticles[defIdx] = updatedArt;
+                    }
+
+                    const custIdx = customArticles.findIndex(a => a.id === id);
+                    if (custIdx >= 0) {
+                        customArticles[custIdx] = updatedArt;
                     } else {
                         customArticles.push(updatedArt);
                     }
+
+                    saveUpdatedMessagesToArticle(updatedArt, parsedMsgs);
                     targetId = id;
                     logActivity(`Chỉnh sửa tên chủ đề thành "${title}"`);
                     showToast(`Đã cập nhật chủ đề "${title}"`, 'success');
@@ -1830,7 +1850,8 @@ function initApp() {
 
             allArticles = getCombinedArticles();
             refreshCategories();
-            selectCategory(cat);
+            renderNavigation();
+            renderArticleList();
             if (topicModal) topicModal.classList.remove('active');
 
             if (targetId) {
@@ -1915,6 +1936,54 @@ function initApp() {
             URL.revokeObjectURL(url);
             logActivity(`Xuất dữ liệu sao lưu hệ thống`);
             showToast('Đã xuất dữ liệu sao lưu hệ thống', 'success');
+        };
+    }
+
+    const importBackupBtn = document.getElementById('importBackupBtn');
+    const importBackupInput = document.getElementById('importBackupInput');
+
+    if (importBackupBtn && importBackupInput) {
+        importBackupBtn.onclick = () => importBackupInput.click();
+        importBackupInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const data = JSON.parse(event.target.result);
+                    if (!data || typeof data !== 'object') throw new Error('Invalid JSON format');
+
+                    if (Array.isArray(data.customArticles)) {
+                        customArticles = data.customArticles;
+                        saveCustomArticlesToCloud(customArticles);
+                    }
+                    if (Array.isArray(data.customCategories)) {
+                        customCategories = data.customCategories;
+                        saveCategoriesToCloud(customCategories);
+                    }
+                    if (Array.isArray(data.deletedArticleIds)) {
+                        deletedArticleIds = data.deletedArticleIds;
+                        saveDeletedIdsToCloud(deletedArticleIds);
+                    }
+                    if (Array.isArray(data.deletedCategoryNames)) {
+                        deletedCategoryNames = data.deletedCategoryNames;
+                        saveDeletedCategoryNamesToCloud(deletedCategoryNames);
+                    }
+
+                    allArticles = getCombinedArticles();
+                    refreshCategories();
+                    renderNavigation();
+                    renderArticleList();
+                    showListView();
+                    logActivity(`Nhập dữ liệu sao lưu hệ thống thành công`);
+                    showToast('Đã khôi phục dữ liệu từ file sao lưu thành công!', 'success');
+                } catch (err) {
+                    showCustomAlert('Lỗi đọc file', 'File sao lưu không hợp lệ hoặc bị lỗi cấu trúc!');
+                }
+                importBackupInput.value = '';
+            };
+            reader.readAsText(file);
         };
     }
 
